@@ -1,124 +1,60 @@
-import subprocess
-import json
 import time
-import os
-import requests
 
+from node_converter import build_config
 
-XRAY = "./xray"
-
-CONFIG = "xray_test.json"
-
-LOCAL_PORT = 10808
-
-
-XRAY_LOG = "xray.log"
-
-XRAY_ERROR_LOG = "xray_error.log"
+from xray_runner import start_xray
+from xray_runner import test_speed
+from xray_runner import stop_xray
 
 
 
-
-# =========================
-# 启动 Xray
-# =========================
-
-def start_xray(config):
+def real_test(node):
 
 
-    # 保存配置
+    # 生成 Xray 配置
 
-    with open(
-
-        CONFIG,
-
-        "w",
-
-        encoding="utf-8"
-
-    ) as f:
-
-
-        json.dump(
-
-            config,
-
-            f,
-
-            indent=2,
-
-            ensure_ascii=False
-
-        )
+    config = build_config(node)
 
 
 
-    # 清理旧日志
+    if not config:
 
-    for file in [
-
-        XRAY_LOG,
-
-        XRAY_ERROR_LOG
-
-    ]:
+        return None
 
 
-        try:
 
-            if os.path.exists(file):
-
-                os.remove(file)
-
-        except:
-
-            pass
-
-
+    process = None
 
 
 
     try:
 
 
-        process = subprocess.Popen(
+        # 启动 Xray
+
+        process = start_xray(config)
 
 
-            [
 
-                XRAY,
+        if not process:
 
-                "run",
-
-                "-c",
-
-                CONFIG
-
-            ],
+            return None
 
 
-            stdout=open(
 
-                XRAY_LOG,
+        # 等待代理启动
 
-                "w",
-
-                encoding="utf-8"
-
-            ),
+        time.sleep(1)
 
 
-            stderr=open(
 
-                XRAY_ERROR_LOG,
+        # 测试代理
 
-                "w",
+        delay = test_speed()
 
-                encoding="utf-8"
 
-            )
 
-        )
+        return delay
 
 
 
@@ -129,172 +65,10 @@ def start_xray(config):
 
 
 
+    finally:
 
 
-    # 等待启动
+        if process:
 
-    time.sleep(2)
 
-
-
-    # 检查进程
-
-    if process.poll() is not None:
-
-
-        return None
-
-
-
-    return process
-
-
-
-
-
-
-
-# =========================
-# 真实测速
-# =========================
-
-def test_speed():
-
-
-
-    proxies={
-
-
-        "http":
-
-        f"socks5://127.0.0.1:{LOCAL_PORT}",
-
-
-
-        "https":
-
-        f"socks5://127.0.0.1:{LOCAL_PORT}"
-
-    }
-
-
-
-    test_urls=[
-
-
-        "https://www.gstatic.com/generate_204",
-
-
-        "https://cp.cloudflare.com/generate_204"
-
-
-    ]
-
-
-
-
-
-    for url in test_urls:
-
-
-        try:
-
-
-
-            start=time.time()
-
-
-
-            r=requests.get(
-
-
-                url,
-
-
-                proxies=proxies,
-
-
-                timeout=10
-
-
-            )
-
-
-
-            delay=int(
-
-                (time.time()-start)*1000
-
-            )
-
-
-
-            if r.status_code in [
-
-                200,
-
-                204
-
-            ]:
-
-
-                return delay
-
-
-
-        except Exception:
-
-
-            continue
-
-
-
-
-    return None
-
-
-
-
-
-
-
-# =========================
-# 停止 Xray
-# =========================
-
-def stop_xray(process):
-
-
-    if not process:
-
-        return
-
-
-
-    try:
-
-
-        process.terminate()
-
-
-
-        process.wait(
-
-            timeout=3
-
-        )
-
-
-
-    except Exception:
-
-
-        try:
-
-            process.kill()
-
-
-        except:
-
-
-            pass
+            stop_xray(process)
