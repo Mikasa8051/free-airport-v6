@@ -15,7 +15,7 @@ from score import calc
 init()
 
 
-with open("config.json","r") as f:
+with open("config.json","r",encoding="utf-8") as f:
     config=json.load(f)
 
 
@@ -24,7 +24,7 @@ nodes=set()
 
 
 
-#读取节点源
+# 获取所有来源
 
 with open("sources.txt","r") as f:
     sources=f.readlines()
@@ -38,16 +38,19 @@ for url in sources:
     if not url:
         continue
 
+
     try:
 
-        print("获取:",url)
+        print("读取:",url)
+
 
         r=requests.get(
             url,
-            timeout=10
+            timeout=15
         )
 
-        result=re.findall(
+
+        found=re.findall(
 
             r"(vmess://[^\s]+|vless://[^\s]+|trojan://[^\s]+|ss://[^\s]+)",
 
@@ -56,48 +59,114 @@ for url in sources:
         )
 
 
-        nodes.update(result)
+        nodes.update(found)
 
 
-    except:
 
-        pass
+    except Exception as e:
+
+        print(
+            "失败",
+            url
+        )
 
 
 
 print(
-    "发现节点:",
+    "总节点:",
     len(nodes)
 )
 
 
 
-#最多测试100个
+# 测试数量
 
-nodes=list(nodes)[:100]
+nodes=list(nodes)[
+    :config["test_nodes"]
+]
 
 
 
 
 def get_region(node):
 
+
     n=node.lower()
 
 
-    if "hk" in n:
-        return "HK"
+    rules={
 
-    if "jp" in n:
-        return "JP"
+        "HK":[
+            "hk",
+            "hong",
+            "hongkong"
+        ],
 
-    if "sg" in n:
-        return "SG"
+        "JP":[
+            "jp",
+            "japan",
+            "tokyo"
+        ],
 
-    if "tw" in n:
-        return "TW"
+        "SG":[
+            "sg",
+            "singapore"
+        ],
 
-    if "us" in n:
-        return "US"
+        "TW":[
+            "tw",
+            "taiwan"
+        ],
+
+        "KR":[
+            "kr",
+            "korea"
+        ],
+
+        "US":[
+            "us",
+            "america",
+            "united"
+        ],
+
+        "DE":[
+            "de",
+            "germany"
+        ],
+
+        "NL":[
+            "nl",
+            "netherlands"
+        ],
+
+        "GB":[
+            "uk",
+            "gb"
+        ],
+
+        "FR":[
+            "fr",
+            "france"
+        ],
+
+        "CA":[
+            "ca",
+            "canada"
+        ]
+
+    }
+
+
+
+    for k,v in rules.items():
+
+        for x in v:
+
+            if x in n:
+
+                return k
+
+
 
     return "OTHER"
 
@@ -107,8 +176,8 @@ def get_region(node):
 
 def check(node):
 
-    try:
 
+    try:
 
         host=re.search(
             r"@([^:/]+)",
@@ -117,13 +186,17 @@ def check(node):
 
 
         if not host:
+
             return None
+
 
 
         host=host.group(1)
 
 
+
         start=time.time()
+
 
 
         socket.create_connection(
@@ -133,17 +206,27 @@ def check(node):
             443
             ),
 
-            timeout=1
+            timeout=1.5
 
         )
 
 
         delay=int(
+
             (time.time()-start)*1000
+
         )
 
 
+
+        if delay > config["max_delay"]:
+
+            return None
+
+
+
         return node,delay
+
 
 
     except:
@@ -154,18 +237,25 @@ def check(node):
 
 
 
-#多线程测试
 
-print("开始测速")
+print(
+    "开始测速"
+)
+
+
+
+success=[]
 
 
 
 with ThreadPoolExecutor(
-    max_workers=20
+
+    max_workers=50
+
 ) as pool:
 
 
-    tasks=[
+    jobs=[
 
         pool.submit(check,n)
 
@@ -174,58 +264,64 @@ with ThreadPoolExecutor(
     ]
 
 
-
-    for task in as_completed(tasks):
-
-
-        result=task.result()
+    for job in as_completed(jobs):
 
 
-        if result:
+        r=job.result()
 
 
-            node,delay=result
+        if r:
 
+            success.append(r)
 
-            region=get_region(node)
-
-
-            score=calc(
-
-                delay,
-                region,
-                config
-
-            )
 
 
             print(
-                region,
-                delay,
-                score
+                "可用",
+                len(success)
             )
 
 
-            save(
 
-                node,
-                region,
-                delay,
-                score
 
-            )
 
+for node,delay in success:
+
+
+    r=get_region(node)
+
+
+    s=calc(
+
+        delay,
+
+        r,
+
+        config
+
+    )
+
+
+    save(
+
+        node,
+
+        r,
+
+        delay,
+
+        s
+
+    )
 
 
 
 
 best=get_best(
+
     config["max_nodes"]
+
 )
-
-
-
-output=[x[0] for x in best]
 
 
 
@@ -236,25 +332,71 @@ os.makedirs(
 
 
 
+# 全部订阅
 
-#生成NekoBox订阅
-
-data="\n".join(output)
-
+all_nodes=[x[0] for x in best]
 
 
-sub=base64.b64encode(
-    data.encode()
-).decode()
+def write_sub(name,data):
+
+
+    text="\n".join(data)
+
+
+    sub=base64.b64encode(
+        text.encode()
+    ).decode()
 
 
 
-with open(
-    "output/nekobox.txt",
-    "w"
-) as f:
+    open(
 
-    f.write(sub)
+        "output/"+name,
+
+        "w"
+
+    ).write(sub)
+
+
+
+
+write_sub(
+    "nekobox.txt",
+    all_nodes
+)
+
+
+
+# 分类输出
+
+for region in [
+
+    "HK",
+    "JP",
+    "SG",
+    "US"
+
+]:
+
+    items=[]
+
+
+    for n,s in best:
+
+        if region.lower() in n.lower():
+
+            items.append(n)
+
+
+
+    write_sub(
+
+        region+".txt",
+
+        items
+
+    )
+
 
 
 
@@ -263,14 +405,25 @@ with open(
     "w"
 ) as f:
 
+
     json.dump(
+
         best,
+
         f,
+
         indent=2
+
     )
 
 
+
 print(
-    "完成:",
-    len(output)
+
+    "完成",
+
+    len(all_nodes),
+
+    "节点"
+
 )
