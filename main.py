@@ -1,21 +1,30 @@
 import requests
 import re
 import json
-import time
-import socket
 import base64
 import os
+import time
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from database import init, save, get_best
+
+from database import init
+from database import save
 from score import calc
+from real_test import real_test
+
 
 
 init()
 
 
-with open("config.json","r",encoding="utf-8") as f:
+
+with open(
+    "config.json",
+    "r",
+    encoding="utf-8"
+) as f:
+
     config=json.load(f)
 
 
@@ -24,29 +33,48 @@ nodes=set()
 
 
 
-# 获取所有来源
+# =====================
+# 读取节点源
+# =====================
 
-with open("sources.txt","r") as f:
+
+with open(
+    "sources.txt",
+    "r",
+    encoding="utf-8"
+) as f:
+
     sources=f.readlines()
 
 
 
 for url in sources:
 
+
     url=url.strip()
 
+
     if not url:
+
         continue
+
 
 
     try:
 
-        print("读取:",url)
+
+        print(
+            "读取:",
+            url
+        )
 
 
         r=requests.get(
+
             url,
-            timeout=15
+
+            timeout=20
+
         )
 
 
@@ -63,29 +91,37 @@ for url in sources:
 
 
 
-    except Exception as e:
+    except Exception:
 
-        print(
-            "失败",
-            url
-        )
+
+        pass
+
 
 
 
 print(
+
     "总节点:",
+
     len(nodes)
+
 )
 
 
 
-# 测试数量
-
 nodes=list(nodes)[
+
     :config["test_nodes"]
+
 ]
 
 
+
+
+
+# =====================
+# 地区识别
+# =====================
 
 
 def get_region(node):
@@ -96,75 +132,42 @@ def get_region(node):
 
     rules={
 
-        "HK":[
-            "hk",
-            "hong",
-            "hongkong"
-        ],
 
-        "JP":[
-            "jp",
-            "japan",
-            "tokyo"
-        ],
+        "HK":["hk","hong"],
 
-        "SG":[
-            "sg",
-            "singapore"
-        ],
+        "JP":["jp","japan"],
 
-        "TW":[
-            "tw",
-            "taiwan"
-        ],
+        "SG":["sg","singapore"],
 
-        "KR":[
-            "kr",
-            "korea"
-        ],
+        "TW":["tw","taiwan"],
 
-        "US":[
-            "us",
-            "america",
-            "united"
-        ],
+        "KR":["kr","korea"],
 
-        "DE":[
-            "de",
-            "germany"
-        ],
+        "US":["us","america"],
 
-        "NL":[
-            "nl",
-            "netherlands"
-        ],
+        "DE":["de","germany"],
 
-        "GB":[
-            "uk",
-            "gb"
-        ],
+        "NL":["nl"],
 
-        "FR":[
-            "fr",
-            "france"
-        ],
+        "GB":["uk","gb"],
 
-        "CA":[
-            "ca",
-            "canada"
-        ]
+        "FR":["fr"],
+
+        "CA":["ca"]
 
     }
 
 
 
-    for k,v in rules.items():
+    for region,keys in rules.items():
 
-        for x in v:
 
-            if x in n:
+        for key in keys:
 
-                return k
+
+            if key in n:
+
+                return region
 
 
 
@@ -174,48 +177,26 @@ def get_region(node):
 
 
 
+
+
+# =====================
+# 真实测速
+# =====================
+
+
 def check(node):
 
 
     try:
 
-        host=re.search(
-            r"@([^:/]+)",
-            node
-        )
+
+        delay=real_test(node)
 
 
-        if not host:
+
+        if delay is None:
 
             return None
-
-
-
-        host=host.group(1)
-
-
-
-        start=time.time()
-
-
-
-        socket.create_connection(
-
-            (
-            host,
-            443
-            ),
-
-            timeout=1.5
-
-        )
-
-
-        delay=int(
-
-            (time.time()-start)*1000
-
-        )
 
 
 
@@ -225,11 +206,17 @@ def check(node):
 
 
 
-        return node,delay
+        return (
+
+            node,
+
+            delay
+
+        )
 
 
+    except Exception:
 
-    except:
 
         return None
 
@@ -238,9 +225,14 @@ def check(node):
 
 
 
+
 print(
-    "开始测速"
+
+    "开始真实代理测速"
+
 )
+
+
 
 
 
@@ -250,52 +242,69 @@ success=[]
 
 with ThreadPoolExecutor(
 
-    max_workers=50
+    max_workers=20
 
 ) as pool:
 
 
+
     jobs=[
 
-        pool.submit(check,n)
+        pool.submit(
+
+            check,
+
+            n
+
+        )
 
         for n in nodes
 
     ]
 
 
+
     for job in as_completed(jobs):
 
 
-        r=job.result()
+        result=job.result()
 
 
-        if r:
+        if result:
 
-            success.append(r)
 
+            success.append(result)
 
 
             print(
-                "可用",
+
+                "真实可用:",
+
                 len(success)
+
             )
 
 
 
 
 
+
+# =====================
+# 保存数据库
+# =====================
+
+
 for node,delay in success:
 
 
-    r=get_region(node)
+    region=get_region(node)
 
 
-    s=calc(
+    score=calc(
 
         delay,
 
-        r,
+        region,
 
         config
 
@@ -306,14 +315,26 @@ for node,delay in success:
 
         node,
 
-        r,
+        region,
 
         delay,
 
-        s
+        score
 
     )
 
+
+
+
+
+
+
+# =====================
+# 输出订阅
+# =====================
+
+
+from database import get_best
 
 
 
@@ -326,83 +347,55 @@ best=get_best(
 
 
 os.makedirs(
+
     "output",
+
     exist_ok=True
+
 )
 
 
 
-# 全部订阅
+nodes=[
 
-all_nodes=[x[0] for x in best]
+    x[0]
 
+    for x in best
 
-def write_sub(name,data):
-
-
-    text="\n".join(data)
-
-
-    sub=base64.b64encode(
-        text.encode()
-    ).decode()
-
-
-
-    open(
-
-        "output/"+name,
-
-        "w"
-
-    ).write(sub)
+]
 
 
 
 
-write_sub(
-    "nekobox.txt",
-    all_nodes
-)
+
+sub=base64.b64encode(
+
+    "\n".join(nodes).encode()
+
+).decode()
 
 
 
-# 分类输出
+open(
 
-for region in [
+    "output/nekobox.txt",
 
-    "HK",
-    "JP",
-    "SG",
-    "US"
+    "w"
 
-]:
+).write(sub)
 
-    items=[]
-
-
-    for n,s in best:
-
-        if region.lower() in n.lower():
-
-            items.append(n)
-
-
-
-    write_sub(
-
-        region+".txt",
-
-        items
-
-    )
 
 
 
 
 with open(
+
     "output/nodes.json",
-    "w"
+
+    "w",
+
+    encoding="utf-8"
+
 ) as f:
 
 
@@ -412,17 +405,21 @@ with open(
 
         f,
 
-        indent=2
+        indent=2,
+
+        ensure_ascii=False
 
     )
 
 
 
+
+
 print(
 
-    "完成",
+    "完成:",
 
-    len(all_nodes),
+    len(nodes),
 
     "节点"
 
