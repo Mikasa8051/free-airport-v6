@@ -14,34 +14,23 @@
   ],
   "outbounds": [
     {
-      "protocol": "vless",
+      "protocol": "vmess",
       "settings": {
         "vnext": [
           {
-            "address": "172.67.138.17",
-            "port": 443,
+            "address": "127.0.0.53",
+            "port": 86,
             "users": [
               {
-                "id": "29ca503d-e6b8-4509-b666-48133f450857",
-                "encryption": "none"
+                "id": "88888888-8888-8888-8888-888888888888",
+                "alterId": 0
               }
             ]
           }
         ]
       },
       "streamSettings": {
-        "network": "ws",
-        "security": "tls",
-        "tlsSettings": {
-          "serverName": "learn00.evany.de5.net",
-          "fingerprint": "random"
-        },
-        "wsSettings": {
-          "path": "/fdip=tw.william.us.ci!txt",
-          "headers": {
-            "Host": "learn00.evany.de5.net"
-          }
-        }
+        "network": "tcp"
       }
     }
   ]

@@ -1,6 +1,5 @@
 Xray 26.3.27 (Xray, Penetrates Everything.) d2758a0 (go1.26.1 linux/amd64)
 A unified platform for anti-censorship.
-2026/07/31 18:16:19.040623 [Info] infra/conf/serial: Reading config: &{Name:xray_test.json Format:json}
-2026/07/31 18:16:19.041385 [Warning] common/errors: The feature WebSocket transport (with ALPN http/1.1, etc.) is deprecated, not recommended for using and might be removed. Please migrate to XHTTP H2 & H3 as soon as possible.
-2026/07/31 18:16:19.041400 [Warning] common/errors: This feature "host" in "headers" is deprecated, will be removed soon and being migrated to independent "host". Please update your config(s) according to release note and documentation before removal.
-2026/07/31 18:16:19.042263 [Warning] core: Xray 26.3.27 started
+2026/07/31 19:21:53.251879 [Info] infra/conf/serial: Reading config: &{Name:xray_test.json Format:json}
+2026/07/31 19:21:53.252868 [Warning] common/errors: The feature VMess (with no Forward Secrecy, etc.) is deprecated, not recommended for using and might be removed. Please migrate to VLESS Encryption as soon as possible.
+2026/07/31 19:21:53.253426 [Warning] core: Xray 26.3.27 started
