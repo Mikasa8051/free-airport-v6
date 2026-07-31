@@ -5,108 +5,254 @@ import os
 import requests
 
 
+XRAY = "./xray"
 
-XRAY="./xray"
+CONFIG = "xray_test.json"
 
-CONFIG="xray_test.json"
-
-LOCAL_PORT=10808
-
+LOCAL_PORT = 10808
 
 
+XRAY_LOG = "xray.log"
 
+XRAY_ERROR_LOG = "xray_error.log"
+
+
+
+
+
+# =========================
+# 启动 Xray
+# =========================
 
 def start_xray(config):
 
 
-    with open(
-        CONFIG,
-        "w",
-        encoding="utf-8"
-    ) as f:
+    try:
 
-        json.dump(
-            config,
-            f,
-            indent=2
+
+        # 保存配置
+
+        with open(
+
+            CONFIG,
+
+            "w",
+
+            encoding="utf-8"
+
+        ) as f:
+
+
+            json.dump(
+
+                config,
+
+                f,
+
+                indent=2,
+
+                ensure_ascii=False
+
+            )
+
+
+
+        # 创建日志文件
+
+        log_file = open(
+
+            XRAY_LOG,
+
+            "w",
+
+            encoding="utf-8"
+
+        )
+
+
+        err_file = open(
+
+            XRAY_ERROR_LOG,
+
+            "w",
+
+            encoding="utf-8"
+
         )
 
 
 
-    process=subprocess.Popen(
 
-        [
-            XRAY,
-            "run",
-            "-c",
-            CONFIG
-        ],
+        process = subprocess.Popen(
 
-        stdout=subprocess.DEVNULL,
+            [
 
-        stderr=subprocess.DEVNULL
+                XRAY,
 
-    )
+                "run",
 
+                "-c",
 
-    time.sleep(2)
+                CONFIG
+
+            ],
 
 
-    return process
+            stdout=log_file,
+
+
+            stderr=err_file
+
+        )
+
+
+
+        # 等待启动
+
+        time.sleep(2)
+
+
+
+        # 检查是否退出
+
+
+        if process.poll() is not None:
+
+
+            err_file.flush()
+
+
+            return None
+
+
+
+        return process
 
 
 
 
+    except Exception as e:
+
+
+
+        with open(
+
+            XRAY_ERROR_LOG,
+
+            "w",
+
+            encoding="utf-8"
+
+        ) as f:
+
+
+            f.write(
+
+                str(e)
+
+            )
+
+
+
+        return None
+
+
+
+
+
+
+
+# =========================
+# 测速
+# =========================
 
 def test_speed():
 
-    proxies={
+
+
+    proxies = {
+
 
         "http":
+
         f"socks5://127.0.0.1:{LOCAL_PORT}",
 
 
+
         "https":
+
         f"socks5://127.0.0.1:{LOCAL_PORT}"
 
     }
 
 
 
-    try:
 
 
-        start=time.time()
+    urls = [
 
 
-        r=requests.get(
-
-            "https://www.gstatic.com/generate_204",
-
-            proxies=proxies,
-
-            timeout=8
-
-        )
+        "https://www.gstatic.com/generate_204",
 
 
-        delay=int(
-
-            (time.time()-start)*1000
-
-        )
+        "https://cp.cloudflare.com/generate_204"
 
 
-        if r.status_code in [200,204]:
-
-            return delay
+    ]
 
 
 
-    except:
+
+    for url in urls:
 
 
-        return None
+
+        try:
+
+
+
+            start=time.time()
+
+
+
+            r=requests.get(
+
+                url,
+
+                proxies=proxies,
+
+                timeout=10
+
+            )
+
+
+
+            delay=int(
+
+                (time.time()-start)*1000
+
+            )
+
+
+
+            if r.status_code in [
+
+                200,
+
+                204
+
+            ]:
+
+
+                return delay
+
+
+
+        except Exception:
+
+
+            pass
+
 
 
 
@@ -116,13 +262,45 @@ def test_speed():
 
 
 
+
+
+# =========================
+# 停止 Xray
+# =========================
+
 def stop_xray(process):
+
+
+    if not process:
+
+        return
+
 
 
     try:
 
+
         process.terminate()
 
-    except:
 
-        pass
+
+        process.wait(
+
+            timeout=3
+
+        )
+
+
+
+    except Exception:
+
+
+
+        try:
+
+            process.kill()
+
+
+        except Exception:
+
+            pass
