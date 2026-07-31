@@ -6,6 +6,7 @@ import socket
 import base64
 import os
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from database import init, save, get_best
 from score import calc
@@ -14,9 +15,7 @@ from score import calc
 init()
 
 
-# 读取配置
-
-with open("config.json","r",encoding="utf-8") as f:
+with open("config.json","r") as f:
     config=json.load(f)
 
 
@@ -25,15 +24,10 @@ nodes=set()
 
 
 
-# 获取节点源
+#读取节点源
 
 with open("sources.txt","r") as f:
-
     sources=f.readlines()
-
-
-
-print("开始获取节点")
 
 
 
@@ -44,42 +38,30 @@ for url in sources:
     if not url:
         continue
 
-
     try:
 
-        print("读取:",url)
-
+        print("获取:",url)
 
         r=requests.get(
             url,
-            timeout=15
+            timeout=10
         )
-
-
-        text=r.text
-
 
         result=re.findall(
 
             r"(vmess://[^\s]+|vless://[^\s]+|trojan://[^\s]+|ss://[^\s]+)",
 
-            text
+            r.text
 
         )
 
 
-        for x in result:
-
-            nodes.add(x)
+        nodes.update(result)
 
 
+    except:
 
-    except Exception as e:
-
-        print(
-            "失败:",
-            url
-        )
+        pass
 
 
 
@@ -90,17 +72,43 @@ print(
 
 
 
+#最多测试100个
 
-# 简单检测节点
+nodes=list(nodes)[:100]
+
+
+
+
+def get_region(node):
+
+    n=node.lower()
+
+
+    if "hk" in n:
+        return "HK"
+
+    if "jp" in n:
+        return "JP"
+
+    if "sg" in n:
+        return "SG"
+
+    if "tw" in n:
+        return "TW"
+
+    if "us" in n:
+        return "US"
+
+    return "OTHER"
+
+
+
 
 
 def check(node):
 
-
     try:
 
-
-        # 提取服务器地址
 
         host=re.search(
             r"@([^:/]+)",
@@ -109,17 +117,13 @@ def check(node):
 
 
         if not host:
-
             return None
-
 
 
         host=host.group(1)
 
 
-
         start=time.time()
-
 
 
         socket.create_connection(
@@ -129,25 +133,20 @@ def check(node):
             443
             ),
 
-            timeout=3
+            timeout=1
 
         )
-
 
 
         delay=int(
-
             (time.time()-start)*1000
-
         )
 
 
-        return delay
-
+        return node,delay
 
 
     except:
-
 
         return None
 
@@ -155,189 +154,123 @@ def check(node):
 
 
 
-def region(node):
+#多线程测试
 
-
-    n=node.lower()
-
-
-    if "hk" in n:
-
-        return "HK"
-
-
-    if "jp" in n:
-
-        return "JP"
-
-
-    if "sg" in n:
-
-        return "SG"
-
-
-    if "tw" in n:
-
-        return "TW"
-
-
-    if "us" in n:
-
-        return "US"
+print("开始测速")
 
 
 
-    return "OTHER"
+with ThreadPoolExecutor(
+    max_workers=20
+) as pool:
+
+
+    tasks=[
+
+        pool.submit(check,n)
+
+        for n in nodes
+
+    ]
 
 
 
+    for task in as_completed(tasks):
 
 
-# 测试
+        result=task.result()
 
 
-for node in nodes:
+        if result:
 
 
-    delay=check(node)
+            node,delay=result
 
 
-
-    if delay:
-
-
-        r=region(node)
+            region=get_region(node)
 
 
-        score=calc(
+            score=calc(
 
-            delay,
+                delay,
+                region,
+                config
 
-            r,
-
-            config
-
-        )
+            )
 
 
-        print(
-
-            r,
-
-            delay,
-
-            score
-
-        )
+            print(
+                region,
+                delay,
+                score
+            )
 
 
-        save(
+            save(
 
-            node,
+                node,
+                region,
+                delay,
+                score
 
-            r,
-
-            delay,
-
-            score
-
-        )
+            )
 
 
 
-
-# 获取最佳节点
 
 
 best=get_best(
-
     config["max_nodes"]
-
 )
 
 
 
-result=[]
+output=[x[0] for x in best]
 
 
-for n,s in best:
-
-    result.append(n)
-
-
-
-
-# 输出目录
 
 os.makedirs(
-
     "output",
-
     exist_ok=True
-
 )
 
 
 
 
-# NekoBox订阅
+#生成NekoBox订阅
 
-
-content="\n".join(result)
+data="\n".join(output)
 
 
 
 sub=base64.b64encode(
-
-    content.encode()
-
+    data.encode()
 ).decode()
 
 
 
 with open(
-
     "output/nekobox.txt",
-
     "w"
-
 ) as f:
-
 
     f.write(sub)
 
 
 
-# JSON输出
-
-
 with open(
-
     "output/nodes.json",
-
     "w"
-
 ) as f:
 
-
     json.dump(
-
         best,
-
         f,
-
         indent=2
-
     )
 
 
-
 print(
-
-    "完成",
-
-    len(result),
-
-    "个节点"
-
+    "完成:",
+    len(output)
 )
