@@ -14,15 +14,16 @@
   ],
   "outbounds": [
     {
-      "protocol": "vmess",
+      "protocol": "vless",
       "settings": {
         "vnext": [
           {
-            "address": "107.161.82.89",
-            "port": 27489,
+            "address": "172.64.35.32",
+            "port": 8443,
             "users": [
               {
-                "id": "1f111c76-69ce-4fa9-a55c-1ae21cd1ab2a"
+                "id": "29ca503d-e6b8-4509-b666-48133f450857",
+                "encryption": "none"
               }
             ]
           }
