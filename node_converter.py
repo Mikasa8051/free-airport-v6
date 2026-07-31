@@ -6,27 +6,36 @@ import urllib.parse
 
 def build_config(node):
 
+    """
+    节点统一入口
+    """
 
-    if node.startswith("vless://"):
+    try:
 
-        return vless_config(node)
+        if node.startswith("vless://"):
 
-
-
-    if node.startswith("trojan://"):
-
-        return trojan_config(node)
-
-
-
-    if node.startswith("vmess://"):
-
-        return vmess_config(node)
+            return vless_config(node)
 
 
 
-    return None
+        if node.startswith("vmess://"):
 
+            return vmess_config(node)
+
+
+
+        if node.startswith("trojan://"):
+
+            return trojan_config(node)
+
+
+
+        return None
+
+
+    except Exception:
+
+        return None
 
 
 
@@ -49,17 +58,17 @@ def base_config(outbound):
 
             {
 
-            "port":10808,
+                "listen":"127.0.0.1",
 
-            "listen":"127.0.0.1",
+                "port":10808,
 
-            "protocol":"socks",
+                "protocol":"socks",
 
-            "settings":{
+                "settings":{
 
-                "udp":True
+                    "udp":True
 
-            }
+                }
 
             }
 
@@ -78,8 +87,9 @@ def base_config(outbound):
 
 
 
-
-
+# =========================
+# VLESS
+# =========================
 
 def vless_config(node):
 
@@ -87,13 +97,11 @@ def vless_config(node):
     url=urllib.parse.urlparse(node)
 
 
-    uuid=url.username
-
-
     host=url.hostname
 
-
     port=url.port
+
+    uuid=url.username
 
 
 
@@ -110,21 +118,24 @@ def vless_config(node):
 
                 {
 
-                "address":host,
 
-                "port":port,
+                    "address":host,
 
-                "users":[
 
-                    {
+                    "port":port,
 
-                    "id":uuid,
 
-                    "encryption":"none"
+                    "users":[
 
-                    }
+                        {
 
-                ]
+                            "id":uuid,
+
+                            "encryption":"none"
+
+                        }
+
+                    ]
 
                 }
 
@@ -135,7 +146,6 @@ def vless_config(node):
     }
 
 
-
     return base_config(outbound)
 
 
@@ -143,6 +153,10 @@ def vless_config(node):
 
 
 
+
+# =========================
+# Trojan
+# =========================
 
 def trojan_config(node):
 
@@ -163,11 +177,13 @@ def trojan_config(node):
 
                 {
 
-                "address":url.hostname,
+                    "address":url.hostname,
 
-                "port":url.port,
 
-                "password":url.username
+                    "port":url.port,
+
+
+                    "password":url.username
 
                 }
 
@@ -178,6 +194,7 @@ def trojan_config(node):
     }
 
 
+
     return base_config(outbound)
 
 
@@ -186,13 +203,17 @@ def trojan_config(node):
 
 
 
+# =========================
+# VMess
+# =========================
+
 def vmess_config(node):
 
 
     try:
 
 
-        raw=node.replace(
+        data=node.replace(
 
             "vmess://",
 
@@ -201,58 +222,66 @@ def vmess_config(node):
         )
 
 
-        data=json.loads(
+        raw=base64.b64decode(
 
-            base64.b64decode(
-
-                raw+"=="
-
-            )
+            data+"=="
 
         )
+
+
+        info=json.loads(
+
+            raw.decode()
+
+        )
+
 
 
         outbound={
 
 
-        "protocol":"vmess",
+            "protocol":"vmess",
 
 
-        "settings":{
+            "settings":{
 
 
-            "vnext":[
-
-                {
-
-                "address":data["add"],
-
-                "port":int(data["port"]),
-
-                "users":[
+                "vnext":[
 
                     {
 
-                    "id":data["id"]
+
+                        "address":info["add"],
+
+
+                        "port":int(info["port"]),
+
+
+                        "users":[
+
+                            {
+
+                                "id":info["id"]
+
+                            }
+
+                        ]
 
                     }
 
                 ]
 
-                }
-
-            ]
+            }
 
         }
 
-        }
 
 
         return base_config(outbound)
 
 
 
-    except:
+    except Exception:
 
 
         return None
