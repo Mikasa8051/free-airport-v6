@@ -14,20 +14,23 @@
   ],
   "outbounds": [
     {
-      "protocol": "vless",
+      "protocol": "vmess",
       "settings": {
         "vnext": [
           {
-            "address": "172.64.35.32",
-            "port": 8443,
+            "address": "165.140.216.142",
+            "port": 443,
             "users": [
               {
-                "id": "29ca503d-e6b8-4509-b666-48133f450857",
-                "encryption": "none"
+                "id": "b65a2d69-5634-42a2-e4be-54e8a6176900",
+                "alterId": 0
               }
             ]
           }
         ]
+      },
+      "streamSettings": {
+        "network": "tcp"
       }
     }
   ]
