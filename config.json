@@ -1,23 +1,24 @@
 {
-  "max_nodes": 50,
+  "max_nodes": 200,
 
-  "max_delay": 300,
+  "test_nodes": 500,
+
+  "max_delay": 500,
 
   "region_weight": {
 
     "HK": 100,
-
-    "JP": 90,
-
-    "SG": 85,
-
-    "TW": 80,
-
-    "KR": 75,
-
-    "US": 50,
-
-    "OTHER": 20
+    "JP": 95,
+    "SG": 90,
+    "TW": 85,
+    "KR": 80,
+    "US": 70,
+    "DE": 65,
+    "NL": 65,
+    "GB": 60,
+    "FR": 60,
+    "CA": 55,
+    "OTHER": 30
 
   }
 }
