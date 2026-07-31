@@ -14,30 +14,20 @@
   ],
   "outbounds": [
     {
-      "protocol": "vless",
+      "protocol": "trojan",
       "settings": {
-        "vnext": [
+        "servers": [
           {
-            "address": "193.93.194.120",
+            "address": "104.18.12.149",
             "port": 443,
-            "users": [
-              {
-                "id": "cfb5b3d3-c094-4222-99e8-53faa787c857",
-                "encryption": "none",
-                "flow": "xtls-rprx-vision"
-              }
-            ]
+            "password": "humanity"
           }
         ]
       },
       "streamSettings": {
-        "network": "tcp",
-        "security": "reality",
-        "realitySettings": {
-          "serverName": "site.rumedia-cdn.com",
-          "fingerprint": "chrome",
-          "publicKey": "dgrcO3r5wkEjcsWdEsNtgtWCe9vER6mgADXYclWXVxg",
-          "shortId": "8de54d32a8d3fdf9"
+        "security": "tls",
+        "tlsSettings": {
+          "serverName": "www.calmlunch.com"
         }
       }
     }
