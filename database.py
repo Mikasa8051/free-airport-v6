@@ -1,102 +1,151 @@
 import sqlite3
-import os
 import time
 
 
-DB = "database/nodes.db"
+DB="database/nodes.db"
+
+
+
+def connect():
+
+    return sqlite3.connect(DB)
+
 
 
 def init():
 
-    os.makedirs(
-        "database",
-        exist_ok=True
-    )
+    conn=connect()
 
-    conn = sqlite3.connect(DB)
+    c=conn.cursor()
 
-    c = conn.cursor()
 
     c.execute("""
+
     CREATE TABLE IF NOT EXISTS nodes(
 
-        node TEXT PRIMARY KEY,
+        id INTEGER PRIMARY KEY,
+
+        node TEXT UNIQUE,
 
         region TEXT,
 
         delay INTEGER,
 
-        success INTEGER,
+        score REAL,
 
-        fail INTEGER,
+        success INTEGER DEFAULT 1,
 
-        last INTEGER,
+        fail INTEGER DEFAULT 0,
 
-        score INTEGER
+        last_check INTEGER
 
     )
+
     """)
 
+
     conn.commit()
+
     conn.close()
 
 
 
-def save(node, region, delay, score):
 
-    conn = sqlite3.connect(DB)
+def save(node,region,delay,score):
 
-    c = conn.cursor()
+
+    conn=connect()
+
+    c=conn.cursor()
+
+
+    now=int(time.time())
+
 
     c.execute("""
+
     INSERT INTO nodes
-    VALUES(?,?,?,?,?,?,?)
+
+    (
+    node,
+    region,
+    delay,
+    score,
+    success,
+    last_check
+    )
+
+    VALUES(?,?,?,?,?,?)
 
     ON CONFLICT(node)
 
     DO UPDATE SET
 
-    region=?,
     delay=?,
+
+    score=?,
+
     success=success+1,
-    last=?,
-    score=?
+
+    last_check=?
 
     """,
-    (
-        node,
-        region,
-        delay,
-        1,
-        0,
-        int(time.time()),
-        score,
 
-        region,
-        delay,
-        int(time.time()),
-        score
+    (
+
+    node,
+    region,
+    delay,
+    score,
+    1,
+    now,
+
+    delay,
+    score,
+    now
+
     ))
 
+
+
     conn.commit()
+
     conn.close()
+
+
 
 
 
 def get_best(limit):
 
-    conn = sqlite3.connect(DB)
 
-    data = conn.execute(
-        """
-        SELECT node,score
-        FROM nodes
-        ORDER BY score DESC
-        LIMIT ?
-        """,
-        (limit,)
-    ).fetchall()
+    conn=connect()
+
+    c=conn.cursor()
+
+
+    c.execute("""
+
+    SELECT node,score
+
+    FROM nodes
+
+    ORDER BY
+
+    score DESC,
+
+    success DESC
+
+    LIMIT ?
+
+    """,(limit,))
+
+
+
+    data=c.fetchall()
+
 
     conn.close()
+
 
     return data
