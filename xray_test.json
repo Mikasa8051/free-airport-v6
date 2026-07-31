@@ -18,11 +18,11 @@
       "settings": {
         "vnext": [
           {
-            "address": "165.140.216.142",
-            "port": 443,
+            "address": "154.64.228.51",
+            "port": 7739,
             "users": [
               {
-                "id": "b65a2d69-5634-42a2-e4be-54e8a6176900",
+                "id": "63d54df4-02eb-413e-beba-95e27bee760f",
                 "alterId": 0
               }
             ]
@@ -30,7 +30,10 @@
         ]
       },
       "streamSettings": {
-        "network": "tcp"
+        "network": "ws",
+        "wsSettings": {
+          "path": "/arki"
+        }
       }
     }
   ]
