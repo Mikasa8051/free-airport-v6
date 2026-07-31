@@ -2,6 +2,7 @@ import requests
 import re
 import json
 import base64
+import random
 import os
 import time
 
@@ -10,14 +11,24 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from database import init
 from database import save
+from database import get_best
+
 from score import calc
 from real_test import real_test
 
 
 
+# =====================
+# 初始化数据库
+# =====================
+
 init()
 
 
+
+# =====================
+# 读取配置
+# =====================
 
 with open(
     "config.json",
@@ -25,11 +36,131 @@ with open(
     encoding="utf-8"
 ) as f:
 
-    config=json.load(f)
+    config = json.load(f)
 
 
 
-nodes=set()
+# =====================
+# 节点清洗
+# =====================
+
+def clean_node(node):
+
+
+    node = node.strip()
+
+
+    if not node:
+
+        return None
+
+
+    if len(node) < 20:
+
+        return None
+
+
+    if not (
+        node.startswith("vmess://")
+        or node.startswith("vless://")
+        or node.startswith("trojan://")
+        or node.startswith("ss://")
+    ):
+
+        return None
+
+
+    return node
+
+
+
+
+
+# =====================
+# 提取节点
+# =====================
+
+def extract_nodes(text):
+
+
+    result=set()
+
+
+
+    # 明文节点
+
+    found=re.findall(
+
+        r"(vmess://[^\s]+|vless://[^\s]+|trojan://[^\s]+|ss://[^\s]+)",
+
+        text
+
+    )
+
+
+    for n in found:
+
+        node=clean_node(n)
+
+        if node:
+
+            result.add(node)
+
+
+
+    # Base64订阅解析
+
+    try:
+
+
+        raw=text.strip()
+
+
+        decoded=base64.b64decode(
+
+            raw + "=" * (-len(raw) % 4)
+
+        ).decode(
+
+            "utf-8",
+
+            errors="ignore"
+
+        )
+
+
+
+        found2=re.findall(
+
+            r"(vmess://[^\s]+|vless://[^\s]+|trojan://[^\s]+|ss://[^\s]+)",
+
+            decoded
+
+        )
+
+
+        for n in found2:
+
+            node=clean_node(n)
+
+
+            if node:
+
+                result.add(node)
+
+
+
+    except Exception:
+
+
+        pass
+
+
+
+    return result
+
+
+
 
 
 
@@ -37,14 +168,24 @@ nodes=set()
 # 读取节点源
 # =====================
 
+nodes=set()
+
+
 
 with open(
+
     "sources.txt",
+
     "r",
+
     encoding="utf-8"
+
 ) as f:
 
+
     sources=f.readlines()
+
+
 
 
 
@@ -52,6 +193,7 @@ for url in sources:
 
 
     url=url.strip()
+
 
 
     if not url:
@@ -64,37 +206,70 @@ for url in sources:
 
 
         print(
-            "读取:",
+
+            "读取源:",
+
             url
+
         )
+
 
 
         r=requests.get(
 
             url,
 
-            timeout=20
+            timeout=20,
+
+            headers={
+
+                "User-Agent":
+
+                "Mozilla/5.0"
+
+            }
 
         )
 
 
-        found=re.findall(
 
-            r"(vmess://[^\s]+|vless://[^\s]+|trojan://[^\s]+|ss://[^\s]+)",
+        new_nodes=extract_nodes(
 
             r.text
 
         )
 
 
-        nodes.update(found)
+        print(
+
+            "发现:",
+
+            len(new_nodes),
+
+            "节点"
+
+        )
+
+
+        nodes.update(
+
+            new_nodes
+
+        )
 
 
 
-    except Exception:
+    except Exception as e:
 
 
-        pass
+        print(
+
+            "源失败:",
+
+            url
+
+        )
+
 
 
 
@@ -109,20 +284,24 @@ print(
 
 
 
-nodes=list(nodes)[
+# 随机抽取测速节点
 
-    :config["test_nodes"]
-
-]
+nodes=list(nodes)
 
 
 
+if len(nodes) > config["test_nodes"]:
 
 
-# =====================
+    nodes=random.sample(
+
+        nodes,
+
+        config["test_nodes"]
+
+    )# =====================
 # 地区识别
 # =====================
-
 
 def get_region(node):
 
@@ -133,27 +312,107 @@ def get_region(node):
     rules={
 
 
-        "HK":["hk","hong"],
+        "HK":[
 
-        "JP":["jp","japan"],
+            "hk",
 
-        "SG":["sg","singapore"],
+            "hong",
 
-        "TW":["tw","taiwan"],
+            "hongkong"
 
-        "KR":["kr","korea"],
+        ],
 
-        "US":["us","america"],
 
-        "DE":["de","germany"],
+        "JP":[
 
-        "NL":["nl"],
+            "jp",
 
-        "GB":["uk","gb"],
+            "japan",
 
-        "FR":["fr"],
+            "tokyo"
 
-        "CA":["ca"]
+        ],
+
+
+        "SG":[
+
+            "sg",
+
+            "singapore"
+
+        ],
+
+
+        "TW":[
+
+            "tw",
+
+            "taiwan"
+
+        ],
+
+
+        "KR":[
+
+            "kr",
+
+            "korea"
+
+        ],
+
+
+        "US":[
+
+            "us",
+
+            "america"
+
+        ],
+
+
+        "DE":[
+
+            "de",
+
+            "germany"
+
+        ],
+
+
+        "NL":[
+
+            "nl",
+
+            "netherlands"
+
+        ],
+
+
+        "GB":[
+
+            "uk",
+
+            "gb"
+
+        ],
+
+
+        "FR":[
+
+            "fr",
+
+            "france"
+
+        ],
+
+
+        "CA":[
+
+            "ca",
+
+            "canada"
+
+        ]
 
     }
 
@@ -182,7 +441,6 @@ def get_region(node):
 # =====================
 # 真实测速
 # =====================
-
 
 def check(node):
 
@@ -227,12 +485,8 @@ def check(node):
 
 
 print(
-
-    "开始真实代理测速"
-
+    "开始真实测速..."
 )
-
-
 
 
 
@@ -248,26 +502,27 @@ with ThreadPoolExecutor(
 
 
 
-    jobs=[
+    tasks=[
 
         pool.submit(
 
             check,
 
-            n
+            node
 
         )
 
-        for n in nodes
+        for node in nodes
 
     ]
 
 
 
-    for job in as_completed(jobs):
+    for task in as_completed(tasks):
 
 
-        result=job.result()
+        result=task.result()
+
 
 
         if result:
@@ -276,9 +531,10 @@ with ThreadPoolExecutor(
             success.append(result)
 
 
+
             print(
 
-                "真实可用:",
+                "可用节点:",
 
                 len(success)
 
@@ -289,15 +545,29 @@ with ThreadPoolExecutor(
 
 
 
+print(
+
+    "测速完成:",
+
+    len(success)
+
+)
+
+
+
+
+
+
+
 # =====================
 # 保存数据库
 # =====================
-
 
 for node,delay in success:
 
 
     region=get_region(node)
+
 
 
     score=calc(
@@ -309,6 +579,7 @@ for node,delay in success:
         config
 
     )
+
 
 
     save(
@@ -329,13 +600,10 @@ for node,delay in success:
 
 
 
+
 # =====================
-# 输出订阅
+# 生成订阅
 # =====================
-
-
-from database import get_best
-
 
 
 best=get_best(
@@ -343,6 +611,7 @@ best=get_best(
     config["max_nodes"]
 
 )
+
 
 
 
@@ -356,11 +625,12 @@ os.makedirs(
 
 
 
-nodes=[
 
-    x[0]
+best_nodes=[
 
-    for x in best
+    item[0]
+
+    for item in best
 
 ]
 
@@ -368,25 +638,38 @@ nodes=[
 
 
 
+# NekoBox Base64订阅
+
 sub=base64.b64encode(
 
-    "\n".join(nodes).encode()
+    "\n".join(best_nodes).encode()
 
 ).decode()
 
 
 
-open(
+
+
+with open(
 
     "output/nekobox.txt",
 
-    "w"
+    "w",
 
-).write(sub)
+    encoding="utf-8"
+
+) as f:
+
+
+    f.write(sub)
 
 
 
 
+
+
+
+# 节点信息
 
 with open(
 
@@ -415,11 +698,63 @@ with open(
 
 
 
+
+
+# 运行状态
+
+status={
+
+
+    "time":int(time.time()),
+
+
+    "source_nodes":len(nodes),
+
+
+    "success_nodes":len(success),
+
+
+    "output_nodes":len(best_nodes)
+
+
+}
+
+
+
+
+with open(
+
+    "output/status.json",
+
+    "w",
+
+    encoding="utf-8"
+
+) as f:
+
+
+    json.dump(
+
+        status,
+
+        f,
+
+        indent=2,
+
+        ensure_ascii=False
+
+    )
+
+
+
+
+
+
 print(
 
     "完成:",
 
-    len(nodes),
+    len(best_nodes),
 
     "节点"
 
