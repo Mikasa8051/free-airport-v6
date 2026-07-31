@@ -1,21 +1,46 @@
-def calc(delay, region, config):
+def calc(delay,region,config):
 
-    region_score = config["region_weight"].get(
+
+    region_score=config["region_weight"].get(
+
         region,
-        20
+
+        30
+
     )
 
-    # 延迟评分
-    delay_score = max(
-        0,
-        100 - delay / 3
-    )
 
-    # 综合评分
-    total = (
-        region_score * 0.4
+    if delay < 50:
+
+        delay_score=100
+
+    elif delay <100:
+
+        delay_score=90
+
+    elif delay <200:
+
+        delay_score=75
+
+    elif delay <300:
+
+        delay_score=60
+
+    else:
+
+        delay_score=40
+
+
+
+    score=(
+
+        delay_score*0.6
+
         +
-        delay_score * 0.6
+
+        region_score*0.4
+
     )
 
-    return int(total)
+
+    return round(score,2)
