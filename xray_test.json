@@ -14,25 +14,30 @@
   ],
   "outbounds": [
     {
-      "protocol": "vmess",
+      "protocol": "vless",
       "settings": {
         "vnext": [
           {
-            "address": "154.64.228.51",
-            "port": 7739,
+            "address": "193.93.194.120",
+            "port": 443,
             "users": [
               {
-                "id": "63d54df4-02eb-413e-beba-95e27bee760f",
-                "alterId": 0
+                "id": "cfb5b3d3-c094-4222-99e8-53faa787c857",
+                "encryption": "none",
+                "flow": "xtls-rprx-vision"
               }
             ]
           }
         ]
       },
       "streamSettings": {
-        "network": "ws",
-        "wsSettings": {
-          "path": "/arki"
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "serverName": "site.rumedia-cdn.com",
+          "fingerprint": "chrome",
+          "publicKey": "dgrcO3r5wkEjcsWdEsNtgtWCe9vER6mgADXYclWXVxg",
+          "shortId": "8de54d32a8d3fdf9"
         }
       }
     }
