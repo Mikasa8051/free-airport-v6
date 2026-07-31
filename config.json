@@ -1,0 +1,23 @@
+{
+  "max_nodes": 50,
+
+  "max_delay": 300,
+
+  "region_weight": {
+
+    "HK": 100,
+
+    "JP": 90,
+
+    "SG": 85,
+
+    "TW": 80,
+
+    "KR": 75,
+
+    "US": 50,
+
+    "OTHER": 20
+
+  }
+}
