@@ -13,9 +13,7 @@ permissions:
 
 on:
 
-
   schedule:
-
 
     - cron: "0 */6 * * *"
 
@@ -28,9 +26,7 @@ on:
 jobs:
 
 
-
   build:
-
 
 
     runs-on: ubuntu-latest
@@ -43,7 +39,7 @@ jobs:
 
       - name: Checkout
 
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
         with:
 
@@ -55,7 +51,7 @@ jobs:
 
       - name: Setup Python
 
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
 
         with:
 
@@ -92,52 +88,27 @@ jobs:
           python main.py
 
 
-          echo "===================="
-
-          echo "XRAY LOG"
-
-          echo "===================="
-
-
-          cat xray.log || true
 
 
 
-          echo "===================="
+      - name: Save result
 
-          echo "XRAY ERROR"
-
-          echo "===================="
-
-
-          cat xray_error.log || true
-
-
-
-
-
-            - name: Save result
         run: |
 
+
           git config user.name github-actions
+
 
           git config user.email github-actions@github.com
 
 
-          # 只提交需要的文件
           git add output/
 
 
           git commit -m "auto update" || echo "no changes"
 
 
-          git pull --rebase origin main
-
-
           git push origin main
-
-
-          git push
 
 
 
@@ -145,7 +116,7 @@ jobs:
 
       - name: Upload Pages artifact
 
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v3
 
         with:
 
@@ -156,14 +127,10 @@ jobs:
 
 
 
-
-
   deploy:
 
 
-
     needs: build
-
 
 
     runs-on: ubuntu-latest
@@ -172,14 +139,12 @@ jobs:
 
     environment:
 
-
       name: github-pages
 
 
 
 
     steps:
-
 
 
       - name: Deploy Pages
