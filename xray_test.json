@@ -14,23 +14,30 @@
   ],
   "outbounds": [
     {
-      "protocol": "vmess",
+      "protocol": "vless",
       "settings": {
         "vnext": [
           {
-            "address": "165.140.216.142",
-            "port": 443,
+            "address": "switzerlandscloudnig.iranlast.com",
+            "port": 7009,
             "users": [
               {
-                "id": "b65a2d69-5634-42a2-e4be-54e8a6176900",
-                "alterId": 0
+                "id": "3f298aca-2412-49ac-9f20-235f0e448d31",
+                "encryption": "none"
               }
             ]
           }
         ]
       },
       "streamSettings": {
-        "network": "tcp"
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "serverName": "yahoo.com",
+          "fingerprint": "qq",
+          "publicKey": "f8TgqVBYK3tmhip3lJ-r8D0i6fqEF1Zy-zAfEhS-Cl8",
+          "shortId": ""
+        }
       }
     }
   ]
