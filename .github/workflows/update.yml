@@ -31,6 +31,7 @@ jobs:
     steps:
 
 
+
       # =====================
       # 拉取代码
       # =====================
@@ -42,6 +43,7 @@ jobs:
         with:
 
           fetch-depth: 0
+
 
 
 
@@ -61,6 +63,7 @@ jobs:
 
 
 
+
       # =====================
       # 安装依赖
       # =====================
@@ -76,6 +79,7 @@ jobs:
 
 
 
+
       # =====================
       # 清理临时文件
       # =====================
@@ -85,6 +89,8 @@ jobs:
         run: |
 
           rm -rf __pycache__
+
+          rm -rf */__pycache__
 
           rm -f *.pyc
 
@@ -113,7 +119,7 @@ jobs:
 
 
       # =====================
-      # 检查生成结果
+      # 检查结果
       # =====================
 
       - name: Check result
@@ -130,11 +136,16 @@ jobs:
           ls -lh database.db || true
 
 
+          echo "========== STATUS =========="
+
+          cat output/status.json || true
+
+
 
 
 
       # =====================
-      # 提交更新结果
+      # 保存结果
       # =====================
 
       - name: Save result
@@ -143,6 +154,7 @@ jobs:
 
 
           git config user.name "github-actions"
+
 
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
@@ -162,12 +174,6 @@ jobs:
 
               git commit -m "auto update"
 
+              git push origin main
+
           fi
-
-
-
-          git pull --rebase origin main || true
-
-
-
-          git push origin main
