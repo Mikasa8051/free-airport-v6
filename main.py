@@ -239,20 +239,13 @@ print(
 # 限制测试数量
 # =====================
 
-nodes=nodes[
-
-    :config.get(
-
-        "test_nodes",
-
-        100
-
-    )
-
-]
+test_count = config.get(
+    "test_nodes",
+    100
+)
 
 
-nodes=nodes[:test_count]
+nodes = nodes[:test_count]
 
 
 
