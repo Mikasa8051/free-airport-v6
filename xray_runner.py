@@ -3,7 +3,6 @@ import json
 import time
 import requests
 import socket
-import os
 
 
 
@@ -12,8 +11,6 @@ XRAY="./xray"
 CONFIG="xray_test.json"
 
 LOCAL_PORT=10808
-
-
 
 
 
@@ -79,7 +76,6 @@ def start_xray(config):
 
     process=subprocess.Popen(
 
-
         [
 
             XRAY,
@@ -102,14 +98,11 @@ def start_xray(config):
 
 
 
-
-
-    time.sleep(2)
+    time.sleep(1)
 
 
 
     return process
-
 
 
 
@@ -122,15 +115,14 @@ def start_xray(config):
 
 def check_port():
 
+
     try:
 
 
         s=socket.socket()
 
 
-
-        s.settimeout(2)
-
+        s.settimeout(1)
 
 
         s.connect(
@@ -146,9 +138,7 @@ def check_port():
         )
 
 
-
         s.close()
-
 
 
         return True
@@ -159,7 +149,6 @@ def check_port():
 
 
         return False
-
 
 
 
@@ -197,7 +186,6 @@ def test_speed():
         f"socks5h://127.0.0.1:{LOCAL_PORT}",
 
 
-
         "https":
 
         f"socks5h://127.0.0.1:{LOCAL_PORT}"
@@ -208,10 +196,7 @@ def test_speed():
 
 
 
-
-
     try:
-
 
 
         start=time.time()
@@ -220,23 +205,19 @@ def test_speed():
 
         r=requests.get(
 
-
-            "http://cachefly.cachefly.net/10mb.test",
+            "http://cachefly.cachefly.net/1mb.test",
 
 
             proxies=proxies,
 
 
-            timeout=15
+            timeout=8
 
         )
 
 
 
-
         cost=time.time()-start
-
-
 
 
 
@@ -250,12 +231,7 @@ def test_speed():
             speed=size/cost/1024/1024
 
 
-
-            delay=int(
-
-                cost*1000
-
-            )
+            delay=int(cost*1000)
 
 
 
@@ -282,9 +258,7 @@ def test_speed():
 
 
 
-
     except Exception as e:
-
 
 
         print(
@@ -298,7 +272,6 @@ def test_speed():
 
 
     return None
-
 
 
 
@@ -321,7 +294,7 @@ def stop_xray(process):
 
         process.wait(
 
-            timeout=3
+            timeout=2
 
         )
 
