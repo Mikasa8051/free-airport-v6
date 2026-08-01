@@ -2,8 +2,8 @@ import subprocess
 import json
 import time
 import requests
-import os
 import socket
+import os
 
 
 
@@ -15,6 +15,12 @@ LOCAL_PORT=10808
 
 
 
+
+
+
+# =====================================================
+# 启动 Xray
+# =====================================================
 
 def start_xray(config):
 
@@ -44,6 +50,8 @@ def start_xray(config):
 
 
 
+
+
     log=open(
 
         "xray.log",
@@ -67,7 +75,10 @@ def start_xray(config):
 
 
 
+
+
     process=subprocess.Popen(
+
 
         [
 
@@ -91,6 +102,8 @@ def start_xray(config):
 
 
 
+
+
     time.sleep(2)
 
 
@@ -103,6 +116,10 @@ def start_xray(config):
 
 
 
+# =====================================================
+# 检查 SOCKS
+# =====================================================
+
 def check_port():
 
     try:
@@ -111,7 +128,9 @@ def check_port():
         s=socket.socket()
 
 
-        s.settimeout(1)
+
+        s.settimeout(2)
+
 
 
         s.connect(
@@ -127,13 +146,16 @@ def check_port():
         )
 
 
+
         s.close()
+
 
 
         return True
 
 
-    except:
+
+    except Exception:
 
 
         return False
@@ -144,6 +166,10 @@ def check_port():
 
 
 
+# =====================================================
+# 真实测速
+# =====================================================
+
 def test_speed():
 
 
@@ -152,7 +178,7 @@ def test_speed():
 
         print(
 
-            "SOCKS端口未启动"
+            "SOCKS启动失败"
 
         )
 
@@ -171,6 +197,7 @@ def test_speed():
         f"socks5h://127.0.0.1:{LOCAL_PORT}",
 
 
+
         "https":
 
         f"socks5h://127.0.0.1:{LOCAL_PORT}"
@@ -180,7 +207,11 @@ def test_speed():
 
 
 
+
+
+
     try:
+
 
 
         start=time.time()
@@ -190,47 +221,77 @@ def test_speed():
         r=requests.get(
 
 
-            "https://www.gstatic.com/generate_204",
+            "http://cachefly.cachefly.net/10mb.test",
 
 
             proxies=proxies,
 
 
-            timeout=10
+            timeout=15
 
         )
 
 
 
-        delay=int(
 
-            (time.time()-start)*1000
-
-        )
+        cost=time.time()-start
 
 
 
-        if r.status_code in [
 
-            200,
 
-            204
+        size=len(r.content)
 
-        ]:
+
+
+        if r.status_code==200 and size>1000:
+
+
+            speed=size/cost/1024/1024
+
+
+
+            delay=int(
+
+                cost*1000
+
+            )
+
+
+
+            print(
+
+                "速度:",
+
+                round(speed,2),
+
+                "MB/s",
+
+                "延迟:",
+
+                delay,
+
+                "ms"
+
+            )
+
 
 
             return delay
 
 
 
+
+
     except Exception as e:
+
 
 
         print(
 
             "测速失败:",
 
-            e
+            str(e)
 
         )
 
@@ -244,15 +305,37 @@ def test_speed():
 
 
 
+# =====================================================
+# 停止 Xray
+# =====================================================
+
 def stop_xray(process):
 
 
     try:
 
+
         process.terminate()
 
 
-    except:
+
+        process.wait(
+
+            timeout=3
+
+        )
 
 
-        pass
+
+    except Exception:
+
+
+        try:
+
+            process.kill()
+
+
+        except:
+
+
+            pass
