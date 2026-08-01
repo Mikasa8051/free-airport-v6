@@ -1,4 +1,0 @@
-Xray 26.3.27 (Xray, Penetrates Everything.) d2758a0 (go1.26.1 linux/amd64)
-A unified platform for anti-censorship.
-2026/08/01 04:16:07.604909 [Info] infra/conf/serial: Reading config: &{Name:xray_test.json Format:json}
-2026/08/01 04:16:07.606164 [Warning] core: Xray 26.3.27 started
