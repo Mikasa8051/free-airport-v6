@@ -11,8 +11,6 @@ from xray_runner import stop_xray
 def real_test(node):
 
 
-    # 生成 Xray 配置
-
     config = build_config(node)
 
 
@@ -23,38 +21,26 @@ def real_test(node):
 
 
 
-    process = None
+    process=None
 
 
 
     try:
 
 
-        # 启动 Xray
-
-        process = start_xray(config)
+        process=start_xray(config)
 
 
-
-        if not process:
-
-            return None
-
-
-
-        # 等待代理启动
 
         time.sleep(1)
 
 
 
-        # 测试代理
-
-        delay = test_speed()
+        result=test_speed()
 
 
 
-        return delay
+        return result
 
 
 
@@ -69,6 +55,5 @@ def real_test(node):
 
 
         if process:
-
 
             stop_xray(process)
