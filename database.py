@@ -1,7 +1,26 @@
+# =====================
+# database.py V3
+# 节点数据库模块
+# =====================
+
 import sqlite3
+import os
+import time
 
 
-DB_FILE = "nodes.db"
+# 统一数据库名称
+DB_FILE = "database.db"
+
+
+
+# =====================
+# 获取连接
+# =====================
+
+def connect():
+
+    return sqlite3.connect(DB_FILE)
+
 
 
 # =====================
@@ -10,22 +29,35 @@ DB_FILE = "nodes.db"
 
 def init():
 
-    conn = sqlite3.connect(DB_FILE)
+    conn = connect()
 
-    c = conn.cursor()
+    cursor = conn.cursor()
 
-    c.execute("""
-    CREATE TABLE IF NOT EXISTS nodes
-    (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        node TEXT UNIQUE,
-        region TEXT,
-        delay REAL,
-        score REAL
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS nodes
+        (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            node TEXT UNIQUE,
+
+            region TEXT,
+
+            delay REAL,
+
+            score REAL,
+
+            update_time INTEGER
+
+        )
+        """
     )
-    """)
+
 
     conn.commit()
+
     conn.close()
 
 
@@ -41,50 +73,75 @@ def save(
     score
 ):
 
+
     try:
 
         delay=float(delay)
 
-    except:
+    except Exception:
 
         delay=99999
+
 
 
     try:
 
         score=float(score)
 
-    except:
+    except Exception:
 
         score=0
 
 
 
-    conn=sqlite3.connect(DB_FILE)
+    conn=connect()
 
-    c=conn.cursor()
+    cursor=conn.cursor()
 
 
-    c.execute(
+
+    cursor.execute(
         """
-        INSERT OR REPLACE INTO nodes
+        INSERT INTO nodes
         (
             node,
             region,
             delay,
-            score
+            score,
+            update_time
         )
 
         VALUES
-        (?,?,?,?)
+        (?,?,?,?,?)
+
+        ON CONFLICT(node)
+
+        DO UPDATE SET
+
+        region=excluded.region,
+
+        delay=excluded.delay,
+
+        score=excluded.score,
+
+        update_time=excluded.update_time
+
         """,
 
         (
+
             node,
+
             region,
+
             delay,
-            score
+
+            score,
+
+            int(time.time())
+
         )
+
     )
 
 
@@ -106,39 +163,57 @@ def get_best(limit=100):
     try:
 
 
-        conn=sqlite3.connect(DB_FILE)
+        conn=connect()
 
-        c=conn.cursor()
+        cursor=conn.cursor()
 
 
-        c.execute(
+
+        cursor.execute(
             """
             SELECT
+
             node,
+
             region,
+
             delay,
+
             score
+
 
             FROM nodes
 
+
             ORDER BY
-            CAST(score AS REAL) DESC,
-            CAST(delay AS REAL) ASC
+
+
+            score DESC,
+
+
+            delay ASC
+
 
             LIMIT ?
 
             """,
 
             (
+
                 limit,
+
             )
+
         )
 
 
-        result=c.fetchall()
+
+        result=cursor.fetchall()
+
 
 
         conn.close()
+
 
 
         return result
@@ -149,9 +224,71 @@ def get_best(limit=100):
 
 
         print(
-            "获取最佳节点失败:",
+
+            "数据库查询失败:",
+
             e
+
         )
 
 
         return []
+
+
+
+
+
+# =====================
+# 清理旧节点
+# =====================
+
+def clean_old(days=7):
+
+
+    try:
+
+
+        expire=time.time()-(days*86400)
+
+
+        conn=connect()
+
+        cursor=conn.cursor()
+
+
+
+        cursor.execute(
+
+            """
+
+            DELETE FROM nodes
+
+            WHERE update_time < ?
+
+            """,
+
+            (
+
+                expire,
+
+            )
+
+        )
+
+
+        conn.commit()
+
+        conn.close()
+
+
+
+    except Exception as e:
+
+
+        print(
+
+            "清理数据库失败:",
+
+            e
+
+        )
