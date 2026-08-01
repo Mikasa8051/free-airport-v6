@@ -13,9 +13,11 @@ permissions:
 
 on:
 
+
   schedule:
 
     - cron: "0 */6 * * *"
+
 
 
   workflow_dispatch:
@@ -27,6 +29,7 @@ jobs:
 
 
   build:
+
 
 
     runs-on: ubuntu-latest
@@ -49,6 +52,7 @@ jobs:
 
 
 
+
       - name: Setup Python
 
         uses: actions/setup-python@v5
@@ -56,6 +60,8 @@ jobs:
         with:
 
           python-version: "3.x"
+
+
 
 
 
@@ -71,11 +77,13 @@ jobs:
 
 
 
+
       - name: Install Xray
 
         run: |
 
           python xray_setup.py
+
 
 
 
@@ -91,6 +99,9 @@ jobs:
 
 
 
+
+      # 只保存订阅输出，不提交临时文件
+
       - name: Save result
 
         run: |
@@ -102,13 +113,32 @@ jobs:
           git config user.email github-actions@github.com
 
 
+
           git add output/
 
 
-          git commit -m "auto update" || echo "no changes"
+
+          if git diff --cached --quiet; then
+
+            echo "No changes"
+
+            exit 0
+
+          fi
+
+
+
+          git commit -m "auto update"
+
+
+
+          git pull --rebase origin main
+
 
 
           git push origin main
+
+
 
 
 
@@ -127,19 +157,27 @@ jobs:
 
 
 
+
+
   deploy:
 
 
+
     needs: build
+
 
 
     runs-on: ubuntu-latest
 
 
 
+
     environment:
 
+
+
       name: github-pages
+
 
 
 
@@ -147,7 +185,9 @@ jobs:
     steps:
 
 
+
       - name: Deploy Pages
+
 
 
         uses: actions/deploy-pages@v4
