@@ -17,7 +17,6 @@ from real_test import real_test
 
 
 
-
 # =====================
 # 初始化数据库
 # =====================
@@ -40,7 +39,6 @@ with open(
 
 
 
-
 nodes=set()
 
 
@@ -59,7 +57,6 @@ with open(
 
 
 
-
 for url in sources:
 
 
@@ -71,7 +68,6 @@ for url in sources:
         continue
 
 
-
     try:
 
 
@@ -79,7 +75,6 @@ for url in sources:
             "读取源:",
             url
         )
-
 
 
         r=requests.get(
@@ -94,7 +89,7 @@ for url in sources:
 
         found=re.findall(
 
-            r"(vmess://[^\s]+|vless://[^\s]+|trojan://[^\s]+|ss://[^\s]+)",
+            r"(vmess://[^\s]+|vless://[^\s]+|trojan://[^\s]+)",
 
             r.text
 
@@ -139,7 +134,6 @@ print(
     len(nodes)
 
 )
-
 
 
 
@@ -208,14 +202,21 @@ print(
 
 
 
+# =====================
 # 限制测试数量
+# =====================
 
 nodes=nodes[
 
-    :config["test_nodes"]
+    :config.get(
+
+        "test_nodes",
+
+        300
+
+    )
 
 ]
-
 
 
 
@@ -333,6 +334,7 @@ def get_region(node):
 
 
 
+
     for region,keys in rules.items():
 
 
@@ -348,7 +350,6 @@ def get_region(node):
 
 
     return "OTHER"
-
 
 
 
@@ -378,7 +379,13 @@ def check(node):
 
 
 
-        if delay > config["max_delay"]:
+        if delay > config.get(
+
+            "max_delay",
+
+            5000
+
+        ):
 
 
             return None
@@ -425,7 +432,7 @@ success=[]
 
 with ThreadPoolExecutor(
 
-    max_workers=20
+    max_workers=10
 
 ) as pool:
 
@@ -453,24 +460,41 @@ with ThreadPoolExecutor(
     for job in as_completed(jobs):
 
 
-        result=job.result()
+        try:
+
+
+            result=job.result()
 
 
 
-        if result:
+            if result:
 
 
-            success.append(result)
+                success.append(result)
 
+
+
+                print(
+
+                    "测速成功:",
+
+                    len(success)
+
+                )
+
+
+        except Exception as e:
 
 
             print(
 
-                "测速成功:",
+                "测速任务错误:",
 
-                len(success)
+                e
 
             )
+
+
 
 
 
@@ -489,6 +513,27 @@ print(
 
 
 
+# =====================
+# 没有节点直接结束
+# =====================
+
+if len(success)==0:
+
+
+    print(
+
+        "没有可用节点"
+
+    )
+
+
+    exit(0)
+
+
+
+
+
+
 
 # =====================
 # 保存成功节点
@@ -497,33 +542,53 @@ print(
 for node,delay in success:
 
 
-    region=get_region(node)
+
+    try:
+
+
+        region=get_region(node)
 
 
 
-    score=calc(
+        score=calc(
 
-        delay,
+            node,
 
-        region,
+            delay,
 
-        config
+            region,
 
-    )
+            config
+
+        )
 
 
 
-    save(
+        save(
 
-        node,
+            node,
 
-        region,
+            region,
 
-        delay,
+            delay,
 
-        score
+            score
 
-    )
+        )
+
+
+    except Exception as e:
+
+
+        print(
+
+            "保存失败:",
+
+            e
+
+        )
+
+
 
 
 
@@ -535,10 +600,15 @@ for node,delay in success:
 # 输出订阅
 # =====================
 
-
 best=get_best(
 
-    config["max_nodes"]
+    config.get(
+
+        "max_nodes",
+
+        100
+
+    )
 
 )
 
@@ -592,6 +662,8 @@ with open(
 
 
     f.write(sub)
+
+
 
 
 
