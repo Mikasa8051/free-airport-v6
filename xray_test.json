@@ -18,12 +18,13 @@
       "settings": {
         "vnext": [
           {
-            "address": "switzerlandscloudnig.iranlast.com",
-            "port": 7009,
+            "address": "2401:c080:1c00:2e7e:5400:6ff:fe4e:5ef8",
+            "port": 443,
             "users": [
               {
-                "id": "3f298aca-2412-49ac-9f20-235f0e448d31",
-                "encryption": "none"
+                "id": "9794d18f-9280-3553-a7a5-a23da75aca76",
+                "encryption": "none",
+                "flow": "xtls-rprx-vision"
               }
             ]
           }
@@ -33,10 +34,10 @@
         "network": "tcp",
         "security": "reality",
         "realitySettings": {
-          "serverName": "yahoo.com",
-          "fingerprint": "qq",
-          "publicKey": "f8TgqVBYK3tmhip3lJ-r8D0i6fqEF1Zy-zAfEhS-Cl8",
-          "shortId": ""
+          "serverName": "a889ec5es7650.gogocs.xyz",
+          "fingerprint": "firefox",
+          "publicKey": "RsT2axtuSFQi7Joh6iPqViD1OfLR2xgv0zoISlddYjM",
+          "shortId": "124eb3c7"
         }
       }
     }
