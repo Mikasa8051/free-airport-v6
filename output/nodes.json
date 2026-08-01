@@ -60,6 +60,24 @@
     954.0
   ],
   [
+    "vless://43bcba7d-cd22-379c-a7da-2e8eafecbc78@[2401:c080:1c01:2e3:5400:6ff:fe46:8cb7]:443?encryption=none&type=tcp&headerType=&fp=firefox&host=s4922.wagahaha.xyz&path=&flow=xtls-rprx-vision&security=tls&sni=u711540us4922.wagahaha.xyz&serviceName=&mode=&alpn=h2%2Chttp%2F1.1#",
+    "US",
+    249.0,
+    801.0
+  ],
+  [
+    "vless://d653f2fc-7eb3-4dad-84fc-a42624e94dfa@154.9.240.153:30333?security=reality&amp;encryption=none&amp;pbk=FecuyYIQm7AEutbh7FRwGN-OWpOrVesJmDxWcTyyKko&amp;headerType=none&amp;fp=chrome&amp;type=tcp&amp;flow=xtls-rprx-vision&amp;sni=aws.amazon.com#",
+    "DE",
+    249.0,
+    801.0
+  ],
+  [
+    "vmess://eyJhZGQiOiIxNjUuMTQwLjIxNi4xNDIiLCJhaWQiOiIwIiwiaG9zdCI6IiIsImlkIjoiYjY1YTJkNjktNTYzNC00MmEyLWU0YmUtNTRlOGE2MTc2OTAwIiwibmV0IjoidGNwIiwicGF0aCI6Ii9MZXZpa29Db25maWciLCJwb3J0IjoiNDQzIiwicHMiOiJCeSBFYnJhU2hhIPCfpr4iLCJzY3kiOiJhdXRvIiwic2tpcC1jZXJ0LXZlcmlmeSI6dHJ1ZSwic25pIjoiIiwidGVzdF9uYW1lIjoiVVM0IiwidGxzIjoiIiwidHlwZSI6Im5vbmUiLCJ2IjoiMiJ9",
+    "OTHER",
+    249.0,
+    801.0
+  ],
+  [
     "vmess://eyJhZGQiOiIxNjUuMTQwLjIxNi4xNDIiLCJhaWQiOiIwIiwiYWxwbiI6IiIsImZwIjoiIiwiaG9zdCI6Ikxldmlrb0NvbmZpZyIsImlkIjoiYjY1YTJkNjktNTYzNC00MmEyLWU0YmUtNTRlOGE2MTc2OTAwIiwiaW5zZWN1cmUiOiIwIiwibmV0IjoidGNwIiwicGF0aCI6Ii9MZXZpa29Db25maWciLCJwb3J0IjoiNDQzIiwicHMiOiJCeSBFYnJhU2hhIPCfk5siLCJzY3kiOiJhdXRvIiwic2tpcC1jZXJ0LXZlcmlmeSI6dHJ1ZSwic25pIjoiIiwidGxzIjoiIiwidHlwZSI6Im5vbmUiLCJ2IjoiMiJ9",
     "OTHER",
     267.0,
@@ -72,10 +90,28 @@
     780.0
   ],
   [
+    "vless://9794d18f-9280-3553-a7a5-a23da75aca76@[2401:c080:1c02:616:5400:6ff:fe51:17a0]:443?encryption=none&type=tcp&headerType=&fp=firefox&host=6a80d5f9s8267.gogocs.xyz&path=&flow=xtls-rprx-vision&security=tls&sni=u691611u6a80d5f9s8267.gogocs.xyz&serviceName=&mode=&alpn=h2%2Chttp%2F1.1#",
+    "DE",
+    288.0,
+    762.0
+  ],
+  [
     "vless://a75f5c82-d667-0ce8-d297-30286b054691@ansooyefilter-production-4623.up.railway.app:443?encryption=none&security=tls&type=ws&host=ansooyefilter-production-4623.up.railway.app&path=/ws/a75f5c82-d667-0ce8-d297-30286b054691&sni=ansooyefilter-production-4623.up.railway.app&fp=chrome&alpn=http/1.1#",
     "OTHER",
     294.0,
     756.0
+  ],
+  [
+    "vless://28beee5e-40ab-3c36-b797-1e4ecf27d0a0@[2401:c080:1000:182e:5400:6ff:fe40:9727]:443?encryption=none&type=xhttp&headerType=&fp=ios&host=s2764.wagahaha.xyz&path=ssp-xhttp&flow=&security=tls&sni=u729792us2764.wagahaha.xyz&serviceName=&mode=&alpn=#",
+    "US",
+    294.0,
+    756.0
+  ],
+  [
+    "vless://39c42b0a-b823-4c93-bb99-74b4183e518d@getsavesafe.net:443?flow=xtls-rprx-vision&encryption=none&security=reality&sni=getsavesafe.net&fp=chrome&pbk=5Z6PwoPSNBLPIsX8lZtHM7-Y-psMMR1vz5Pit0EVISs&sid=82f5d3a1e9c0b661&allowinsecure=0&type=tcp&headerType=none#",
+    "DE",
+    295.0,
+    755.0
   ],
   [
     "vless://e35a5ad5-0175-4cd6-b654-1eb220ff28f0@172.67.169.143:443?security=tls&type=ws&path=/Wvf67jc5MgASmsb9Qsr0&host=infra-services-c8-2.21491204-f13b-4977-9cc9-5275edd68fd8.kdns.fr&packetEncoding=xudp&sni=infra-services-c8-2.21491204-f13b-4977-9cc9-5275edd68fd8.kdns.fr&fp=chrome#",
@@ -104,6 +140,18 @@
   [
     "vless://9794d18f-9280-3553-a7a5-a23da75aca76@[2401:c080:1c02:237:5400:6ff:fe4b:7b36]:443?encryption=none&type=tcp&headerType=&fp=firefox&host=a0dd6180s6750.gogocs.xyz&path=&flow=xtls-rprx-vision&security=tls&sni=u691611ua0dd6180s6750.gogocs.xyz&serviceName=&mode=&alpn=h2%2Chttp%2F1.1#",
     "DE",
+    314.0,
+    736.0
+  ],
+  [
+    "vless://01200f5c-5321-d946-7028-0661ea0a2c0e@x4g-production-c71f.up.railway.app:443?path=/ws/01200f5c-5321-d946-7028-0661ea0a2c0e&security=tls&alpn=http/1.1&encryption=none&insecure=0&host=x4g-production-c71f.up.railway.app&fp=chrome&type=ws&allowInsecure=0&sni=x4g-production-c71f.up.railway.app#",
+    "OTHER",
+    314.0,
+    736.0
+  ],
+  [
+    "vless://db633771-6002-4e85-b4f3-103e328ad861@x4g-production-4ce4.up.railway.app:443?path=%2Fws%2Fdb633771-6002-4e85-b4f3-103e328ad861&security=tls&alpn=http%2F1.1&encryption=none&insecure=0&host=x4g-production-4ce4.up.railway.app&fp=firefox&type=ws&allowInsecure=0&sni=x4g-production-4ce4.up.railway.app#",
+    "OTHER",
     314.0,
     736.0
   ],
