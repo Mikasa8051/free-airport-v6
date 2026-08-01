@@ -1,24 +1,79 @@
 {
-  "max_nodes": 200,
+    "test_nodes": 300,
 
-  "test_nodes": 500,
+    "max_delay": 800,
 
-  "max_delay": 500,
+    "max_nodes": 100,
 
-  "region_weight": {
 
-    "HK": 100,
-    "JP": 95,
-    "SG": 90,
-    "TW": 85,
-    "KR": 80,
-    "US": 70,
-    "DE": 65,
-    "NL": 65,
-    "GB": 60,
-    "FR": 60,
-    "CA": 55,
-    "OTHER": 30
+    "region_weight": {
 
-  }
+        "HK": 100,
+
+        "TW": 90,
+
+        "JP": 85,
+
+        "SG": 75,
+
+        "KR": 70,
+
+        "US": 40,
+
+        "CA": 35,
+
+        "GB": 35,
+
+        "DE": 30,
+
+        "NL": 30,
+
+        "FR": 30,
+
+        "OTHER": 20
+
+    },
+
+
+    "speed_test": {
+
+        "enabled": true,
+
+        "timeout": 8,
+
+        "retry": 2
+
+    },
+
+
+    "output": {
+
+        "subscription": "output/nekobox.txt",
+
+        "json": "output/nodes.json"
+
+    },
+
+
+    "china_profile": {
+
+        "isp": "China Unicom",
+
+        "city": "Beijing",
+
+        "preferred_regions": [
+
+            "HK",
+
+            "TW",
+
+            "JP",
+
+            "SG",
+
+            "KR"
+
+        ]
+
+    }
 }
