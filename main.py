@@ -600,70 +600,85 @@ for node,delay in success:
 # 输出订阅
 # =====================
 
-best=get_best(
 
-    config.get(
+try:
 
-        "max_nodes",
-
-        100
-
+    best = get_best(
+        config["max_nodes"]
     )
 
-)
 
+except Exception as e:
 
+    print(
+        "获取最佳节点失败:",
+        e
+    )
+
+    best = []
 
 
 
 os.makedirs(
-
     "output",
-
     exist_ok=True
-
 )
 
 
 
+out_nodes = []
 
 
-out_nodes=[
+for item in best:
 
-    x[0]
+    if isinstance(item, tuple):
 
-    for x in best
+        out_nodes.append(
+            item[0]
+        )
 
-]
+    elif isinstance(item, dict):
 
+        if "node" in item:
 
-
-
-
-sub=base64.b64encode(
-
-    "\n".join(out_nodes).encode()
-
-).decode()
-
-
+            out_nodes.append(
+                item["node"]
+            )
 
 
 
-with open(
-
-    "output/nekobox.txt",
-
-    "w",
-
-    encoding="utf-8"
-
-) as f:
+if out_nodes:
 
 
-    f.write(sub)
+    sub = base64.b64encode(
+
+        "\n".join(out_nodes).encode()
+
+    ).decode()
 
 
+
+    with open(
+
+        "output/nekobox.txt",
+
+        "w",
+
+        encoding="utf-8"
+
+    ) as f:
+
+
+        f.write(sub)
+
+
+
+else:
+
+
+    print(
+        "没有可用节点，跳过订阅生成"
+    )
 
 
 
@@ -691,7 +706,6 @@ with open(
         ensure_ascii=False
 
     )
-
 
 
 
