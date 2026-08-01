@@ -1,14 +1,15 @@
 import requests
 import re
 import json
-import os
 import base64
-
+import os
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-from database import init, save, get_best
+from database import init
+from database import save
+from database import get_best
 
 from score import calc
 
@@ -16,9 +17,18 @@ from real_test import real_test
 
 
 
+
+# =====================
+# 初始化数据库
+# =====================
+
 init()
 
 
+
+# =====================
+# 读取配置
+# =====================
 
 with open(
     "config.json",
@@ -30,14 +40,14 @@ with open(
 
 
 
+
 nodes=set()
 
 
 
-# ======================
+# =====================
 # 读取节点源
-# ======================
-
+# =====================
 
 with open(
     "sources.txt",
@@ -49,15 +59,17 @@ with open(
 
 
 
-for source in sources:
+
+for url in sources:
 
 
-    source=source.strip()
+    url=url.strip()
 
 
-    if not source:
+    if not url:
 
         continue
+
 
 
     try:
@@ -65,17 +77,19 @@ for source in sources:
 
         print(
             "读取源:",
-            source
+            url
         )
+
 
 
         r=requests.get(
 
-            source,
+            url,
 
             timeout=20
 
         )
+
 
 
         found=re.findall(
@@ -91,10 +105,28 @@ for source in sources:
 
 
 
-    except Exception:
+        print(
+
+            "发现:",
+
+            len(found),
+
+            "节点"
+
+        )
 
 
-        pass
+
+    except Exception as e:
+
+
+        print(
+
+            "读取失败:",
+
+            url
+
+        )
 
 
 
@@ -115,23 +147,89 @@ nodes=list(nodes)
 
 
 
-# 测试数量
-
-nodes=nodes[:config["test_nodes"]]
 
 
+# =====================
+# IPv6过滤
+# =====================
+
+def is_ipv6(node):
+
+
+    return bool(
+
+        re.search(
+
+            r"@[0-9a-fA-F:]+:",
+
+            node
+
+        )
+
+    )
 
 
 
-# ======================
+
+
+before=len(nodes)
+
+
+
+nodes=[
+
+    n for n in nodes
+
+    if not is_ipv6(n)
+
+]
+
+
+
+print(
+
+    "过滤IPv6:",
+
+    before-len(nodes)
+
+)
+
+
+
+print(
+
+    "IPv4节点:",
+
+    len(nodes)
+
+)
+
+
+
+
+
+# 限制测试数量
+
+nodes=nodes[
+
+    :config["test_nodes"]
+
+]
+
+
+
+
+
+
+
+# =====================
 # 地区识别
-# ======================
-
+# =====================
 
 def get_region(node):
 
 
-    text=node.lower()
+    n=node.lower()
 
 
 
@@ -142,18 +240,7 @@ def get_region(node):
 
             "hk",
 
-            "hongkong",
-
             "hong"
-
-        ],
-
-
-        "TW":[
-
-            "tw",
-
-            "taiwan"
 
         ],
 
@@ -176,6 +263,15 @@ def get_region(node):
         ],
 
 
+        "TW":[
+
+            "tw",
+
+            "taiwan"
+
+        ],
+
+
         "KR":[
 
             "kr",
@@ -191,9 +287,49 @@ def get_region(node):
 
             "america"
 
+        ],
+
+
+        "DE":[
+
+            "de",
+
+            "germany"
+
+        ],
+
+
+        "NL":[
+
+            "nl"
+
+        ],
+
+
+        "GB":[
+
+            "uk",
+
+            "gb"
+
+        ],
+
+
+        "FR":[
+
+            "fr"
+
+        ],
+
+
+        "CA":[
+
+            "ca"
+
         ]
 
     }
+
 
 
 
@@ -203,9 +339,11 @@ def get_region(node):
         for key in keys:
 
 
-            if key in text:
+            if key in n:
+
 
                 return region
+
 
 
 
@@ -217,10 +355,10 @@ def get_region(node):
 
 
 
-# ======================
-# 节点测试
-# ======================
 
+# =====================
+# 真实测速
+# =====================
 
 def check(node):
 
@@ -228,61 +366,33 @@ def check(node):
     try:
 
 
-        result=real_test(node)
+        delay=real_test(node)
 
 
 
-        if not result:
+        if delay is None:
+
 
             return None
 
-
-
-
-        delay=result["delay"]
-
-
-        success=result["success"]
 
 
 
         if delay > config["max_delay"]:
 
+
             return None
 
 
 
-        region=get_region(node)
 
+        return (
 
+            node,
 
-        score=calc(
-
-            delay,
-
-            region,
-
-            success,
-
-            config
+            delay
 
         )
-
-
-
-        return {
-
-            "node":node,
-
-            "region":region,
-
-            "delay":delay,
-
-            "success":success,
-
-            "score":score
-
-        }
 
 
 
@@ -299,7 +409,7 @@ def check(node):
 
 print(
 
-    "开始北京联通优化测速"
+    "开始真实测速..."
 
 )
 
@@ -307,55 +417,58 @@ print(
 
 
 
-results=[]
+success=[]
+
+
 
 
 
 with ThreadPoolExecutor(
 
-    max_workers=10
+    max_workers=20
 
 ) as pool:
 
 
-    tasks=[
+
+    jobs=[
+
 
         pool.submit(
 
             check,
 
-            node
+            n
 
         )
 
-        for node in nodes
+
+        for n in nodes
 
     ]
 
 
 
-    for task in as_completed(tasks):
+
+    for job in as_completed(jobs):
 
 
-        data=task.result()
+        result=job.result()
 
 
-        if data:
+
+        if result:
 
 
-            results.append(data)
+            success.append(result)
 
 
 
             print(
 
-                "通过:",
+                "测速成功:",
 
-                len(results),
-
-                "评分:",
-
-                data["score"]
+                len(success)
 
             )
 
@@ -363,26 +476,52 @@ with ThreadPoolExecutor(
 
 
 
+print(
+
+    "测速完成:",
+
+    len(success)
+
+)
 
 
 
-# ======================
-# 保存数据库
-# ======================
 
 
-for item in results:
+
+
+# =====================
+# 保存成功节点
+# =====================
+
+for node,delay in success:
+
+
+    region=get_region(node)
+
+
+
+    score=calc(
+
+        delay,
+
+        region,
+
+        config
+
+    )
+
 
 
     save(
 
-        item["node"],
+        node,
 
-        item["region"],
+        region,
 
-        item["delay"],
+        delay,
 
-        item["score"]
+        score
 
     )
 
@@ -392,9 +531,9 @@ for item in results:
 
 
 
-# ======================
+# =====================
 # 输出订阅
-# ======================
+# =====================
 
 
 best=get_best(
@@ -402,6 +541,8 @@ best=get_best(
     config["max_nodes"]
 
 )
+
+
 
 
 
@@ -415,33 +556,42 @@ os.makedirs(
 
 
 
-node_list=[
 
-    item[0]
 
-    for item in best
+out_nodes=[
+
+    x[0]
+
+    for x in best
 
 ]
 
 
 
-subscription=base64.b64encode(
 
-    "\n".join(node_list).encode()
+
+sub=base64.b64encode(
+
+    "\n".join(out_nodes).encode()
 
 ).decode()
 
 
 
+
+
 with open(
 
-    config["output"]["subscription"],
+    "output/nekobox.txt",
 
-    "w"
+    "w",
+
+    encoding="utf-8"
 
 ) as f:
 
-    f.write(subscription)
+
+    f.write(sub)
 
 
 
@@ -449,7 +599,7 @@ with open(
 
 with open(
 
-    config["output"]["json"],
+    "output/nodes.json",
 
     "w",
 
@@ -474,11 +624,12 @@ with open(
 
 
 
+
 print(
 
     "完成:",
 
-    len(best),
+    len(out_nodes),
 
     "节点"
 
