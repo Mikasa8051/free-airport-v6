@@ -1,15 +1,8 @@
-# =====================
-# main.py V3
-# 免费节点自动筛选生成器
-# =====================
-
-
 import requests
 import re
 import json
 import base64
 import os
-
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -17,7 +10,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from database import init
 from database import save
 from database import get_best
-from database import clean_old
 
 
 from score import calc
@@ -27,18 +19,11 @@ from real_test import real_test
 
 
 
-
 # =====================
 # 初始化数据库
 # =====================
 
-
 init()
-
-
-# 清理7天以前数据
-
-clean_old()
 
 
 
@@ -46,44 +31,33 @@ clean_old()
 # 读取配置
 # =====================
 
-
 with open(
-
     "config.json",
-
     "r",
-
     encoding="utf-8"
-
 ) as f:
-
 
     config=json.load(f)
 
 
 
 
-# =====================
-# 读取节点源
-# =====================
-
-
 nodes=set()
 
 
 
+# =====================
+# 节点源
+# =====================
+
 with open(
-
     "sources.txt",
-
     "r",
-
     encoding="utf-8"
-
 ) as f:
 
-
     sources=f.readlines()
+
 
 
 
@@ -99,32 +73,25 @@ for url in sources:
         continue
 
 
-
     try:
 
 
         print(
-
             "读取源:",
-
             url
-
         )
 
 
         r=requests.get(
-
             url,
-
             timeout=20
-
         )
 
 
 
         found=re.findall(
 
-            r"(vmess://[^\s]+|vless://[^\s]+|trojan://[^\s]+)",
+            r"(vmess://[^\s]+|vless://[^\s]+|trojan://[^\s]+|hysteria2://[^\s]+|hy2://[^\s]+)",
 
             r.text
 
@@ -134,15 +101,10 @@ for url in sources:
         nodes.update(found)
 
 
-
         print(
-
             "发现:",
-
             len(found),
-
             "节点"
-
         )
 
 
@@ -151,22 +113,18 @@ for url in sources:
 
 
         print(
-
             "读取失败:",
-
             e
-
         )
 
 
 
 
+
+
 print(
-
     "总节点:",
-
     len(nodes)
-
 )
 
 
@@ -176,10 +134,10 @@ nodes=list(nodes)
 
 
 
+
 # =====================
 # IPv6过滤
 # =====================
-
 
 def is_ipv6(node):
 
@@ -187,11 +145,8 @@ def is_ipv6(node):
     return bool(
 
         re.search(
-
-            r"@[0-9a-fA-F:]+:",
-
+            r"\[[0-9a-fA-F:]+\]",
             node
-
         )
 
     )
@@ -214,21 +169,15 @@ nodes=[
 
 
 print(
-
     "过滤IPv6:",
-
     before-len(nodes)
-
 )
 
 
 
 print(
-
     "IPv4节点:",
-
     len(nodes)
-
 )
 
 
@@ -236,26 +185,18 @@ print(
 
 
 # =====================
-# 限制测试数量
+# 测试数量
 # =====================
 
-test_count = config.get(
+
+test_count=config.get(
     "test_nodes",
-    100
+    300
 )
 
 
-nodes = nodes[:test_count]
 
-
-
-print(
-
-    "进入测速:",
-
-    len(nodes)
-
-)
+nodes=nodes[:test_count]
 
 
 
@@ -277,63 +218,40 @@ def get_region(node):
 
 
         "HK":[
-
             "hk",
-
             "hong"
-
         ],
 
 
         "JP":[
-
             "jp",
-
             "japan"
-
         ],
 
 
         "SG":[
-
             "sg",
-
             "singapore"
-
         ],
 
 
         "TW":[
-
-            "tw"
-
+            "tw",
+            "taiwan"
         ],
 
 
         "US":[
-
             "us",
-
             "america"
-
         ],
 
 
         "DE":[
-
             "de"
-
-        ],
-
-
-        "NL":[
-
-            "nl"
-
         ]
 
     }
-
 
 
 
@@ -355,8 +273,61 @@ def get_region(node):
 
 
 
+
+
 # =====================
-# 单节点测试
+# 协议识别
+# =====================
+
+
+def get_protocol(node):
+
+
+    if node.startswith(
+        "vless://"
+    ):
+
+        return "vless"
+
+
+
+    if node.startswith(
+        "vmess://"
+    ):
+
+        return "vmess"
+
+
+
+    if node.startswith(
+        "trojan://"
+    ):
+
+        return "trojan"
+
+
+
+    if (
+        node.startswith("hysteria2://")
+        or
+        node.startswith("hy2://")
+    ):
+
+        return "hysteria2"
+
+
+
+    return "unknown"
+
+
+
+
+
+
+
+
+# =====================
+# 测试节点
 # =====================
 
 
@@ -366,38 +337,70 @@ def check(node):
     try:
 
 
-        delay=real_test(node)
+        result=real_test(node)
 
 
 
-        if delay is None:
+        if not result:
 
             return None
 
 
 
+        if isinstance(
+            result,
+            dict
+        ):
+
+
+            delay=result.get(
+                "delay",
+                9999
+            )
+
+
+            speed=result.get(
+                "speed",
+                0
+            )
+
+
+        else:
+
+
+            delay=result
+
+
+            speed=0
+
+
+
+
+
         if delay > config.get(
-
             "max_delay",
-
-            3000
-
+            5000
         ):
 
             return None
 
 
 
-        return (
 
-            node,
+        return {
 
-            delay
+            "node":node,
 
-        )
+            "delay":delay,
+
+            "speed":speed
+
+        }
 
 
-    except Exception:
+
+
+    except Exception as e:
 
 
         return None
@@ -406,10 +409,10 @@ def check(node):
 
 
 
+
+
 print(
-
     "开始真实测速..."
-
 )
 
 
@@ -419,50 +422,44 @@ success=[]
 
 
 
+
+
 with ThreadPoolExecutor(
-
-    max_workers=20
-
+    max_workers=10
 ) as pool:
 
 
-    tasks=[
-
+    jobs=[
 
         pool.submit(
-
             check,
-
-            node
-
+            n
         )
 
-        for node in nodes
-
+        for n in nodes
 
     ]
 
 
 
-    for task in as_completed(tasks):
+    for job in as_completed(jobs):
 
 
-        result=task.result()
+        result=job.result()
 
 
 
         if result:
 
 
-            success.append(result)
+            success.append(
+                result
+            )
 
 
             print(
-
                 "测速成功:",
-
                 len(success)
-
             )
 
 
@@ -470,12 +467,24 @@ with ThreadPoolExecutor(
 
 
 print(
-
     "测速完成:",
-
     len(success)
-
 )
+
+
+
+
+
+if not success:
+
+
+    print(
+        "没有可用节点"
+    )
+
+    exit(0)
+
+
 
 
 
@@ -486,111 +495,149 @@ print(
 # =====================
 
 
-for node,delay in success:
+for item in success:
 
 
-    region=get_region(node)
+    try:
 
 
-    score=calc(
-
-        delay,
-
-        region,
-
-        config
-
-    )
+        node=item["node"]
 
 
-    save(
+        delay=item["delay"]
 
-        node,
 
-        region,
+        speed=item["speed"]
 
-        delay,
 
-        score
 
-    )
+        region=get_region(node)
+
+
+        protocol=get_protocol(node)
+
+
+
+        score=calc(
+
+            delay,
+
+            speed,
+
+            region,
+
+            protocol,
+
+            config
+
+        )
+
+
+
+        save(
+
+            node,
+
+            region,
+
+            delay,
+
+            score
+
+        )
+
+
+
+    except Exception as e:
+
+
+        print(
+            "保存失败:",
+            e
+        )
+
 
 
 
 
 
 # =====================
-# 输出最佳节点
+# 输出订阅
 # =====================
 
 
-best=get_best(
+try:
 
-    config.get(
 
-        "max_nodes",
-
-        30
-
+    best=get_best(
+        config.get(
+            "max_nodes",
+            100
+        )
     )
 
-)
+
+except Exception as e:
+
+
+    print(
+        "获取最佳节点失败:",
+        e
+    )
+
+
+    best=[]
+
+
 
 
 
 os.makedirs(
-
     "output",
-
     exist_ok=True
-
 )
 
 
 
-nodes_out=[]
+
+out_nodes=[]
 
 
 
 for item in best:
 
 
-    nodes_out.append(
+    if isinstance(
+        item,
+        tuple
+    ):
 
-        item[0]
-
-    )
-
-
+        out_nodes.append(
+            item[0]
+        )
 
 
 
-if nodes_out:
+
+
+if out_nodes:
 
 
     data="\n".join(
-
-        nodes_out
-
+        out_nodes
     )
 
 
     sub=base64.b64encode(
-
         data.encode()
-
     ).decode()
 
 
 
     with open(
-
         "output/nekobox.txt",
-
         "w",
-
         encoding="utf-8"
-
     ) as f:
 
 
@@ -602,9 +649,7 @@ else:
 
 
     print(
-
-        "没有可用节点"
-
+        "没有节点输出"
     )
 
 
@@ -612,26 +657,17 @@ else:
 
 
 with open(
-
     "output/nodes.json",
-
     "w",
-
     encoding="utf-8"
-
 ) as f:
 
 
     json.dump(
-
         best,
-
         f,
-
         indent=2,
-
         ensure_ascii=False
-
     )
 
 
@@ -639,11 +675,7 @@ with open(
 
 
 print(
-
     "完成:",
-
-    len(nodes_out),
-
+    len(out_nodes),
     "节点"
-
 )
