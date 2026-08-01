@@ -14,28 +14,23 @@
   ],
   "outbounds": [
     {
-      "protocol": "vless",
+      "protocol": "vmess",
       "settings": {
         "vnext": [
           {
-            "address": "it1-akn.astralweb.tech",
+            "address": "165.140.216.142",
             "port": 443,
             "users": [
               {
-                "id": "3ad1d277-5715-4ca1-84db-5baea72f822d",
-                "encryption": "none"
+                "id": "b65a2d69-5634-42a2-e4be-54e8a6176900",
+                "alterId": 0
               }
             ]
           }
         ]
       },
       "streamSettings": {
-        "network": "tcp",
-        "security": "tls",
-        "tlsSettings": {
-          "serverName": "it1-akn.astralweb.tech",
-          "fingerprint": "firefox"
-        }
+        "network": "tcp"
       }
     }
   ]
