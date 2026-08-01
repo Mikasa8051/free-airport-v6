@@ -1,8 +1,9 @@
 import subprocess
 import json
 import time
-import os
 import requests
+import os
+import socket
 
 
 
@@ -10,10 +11,7 @@ XRAY="./xray"
 
 CONFIG="xray_test.json"
 
-LOG="xray_error.log"
-
 LOCAL_PORT=10808
-
 
 
 
@@ -22,10 +20,15 @@ def start_xray(config):
 
 
     with open(
+
         CONFIG,
+
         "w",
+
         encoding="utf-8"
+
     ) as f:
+
 
         json.dump(
 
@@ -33,7 +36,9 @@ def start_xray(config):
 
             f,
 
-            indent=2
+            indent=2,
+
+            ensure_ascii=False
 
         )
 
@@ -41,7 +46,18 @@ def start_xray(config):
 
     log=open(
 
-        LOG,
+        "xray.log",
+
+        "w",
+
+        encoding="utf-8"
+
+    )
+
+
+    err=open(
+
+        "xray_error.log",
 
         "w",
 
@@ -69,7 +85,7 @@ def start_xray(config):
         stdout=log,
 
 
-        stderr=log
+        stderr=err
 
     )
 
@@ -87,7 +103,64 @@ def start_xray(config):
 
 
 
+def check_port():
+
+    try:
+
+
+        s=socket.socket()
+
+
+        s.settimeout(1)
+
+
+        s.connect(
+
+            (
+
+                "127.0.0.1",
+
+                LOCAL_PORT
+
+            )
+
+        )
+
+
+        s.close()
+
+
+        return True
+
+
+    except:
+
+
+        return False
+
+
+
+
+
+
+
 def test_speed():
+
+
+    if not check_port():
+
+
+        print(
+
+            "SOCKS端口未启动"
+
+        )
+
+
+        return None
+
+
+
 
 
     proxies={
@@ -95,103 +168,75 @@ def test_speed():
 
         "http":
 
-        f"socks5://127.0.0.1:{LOCAL_PORT}",
-
+        f"socks5h://127.0.0.1:{LOCAL_PORT}",
 
 
         "https":
 
-        f"socks5://127.0.0.1:{LOCAL_PORT}"
+        f"socks5h://127.0.0.1:{LOCAL_PORT}"
 
     }
 
 
 
-    urls=[
+
+    try:
 
 
-        "https://www.gstatic.com/generate_204",
-
-
-        "https://www.cloudflare.com/cdn-cgi/trace"
-
-
-    ]
+        start=time.time()
 
 
 
-    success=0
-
-    delays=[]
+        r=requests.get(
 
 
-
-    for url in urls:
-
-
-        try:
+            "https://www.gstatic.com/generate_204",
 
 
-            start=time.time()
+            proxies=proxies,
 
 
-            r=requests.get(
+            timeout=10
 
-                url,
-
-                proxies=proxies,
-
-                timeout=8
-
-            )
+        )
 
 
 
-            delay=int(
+        delay=int(
 
-                (time.time()-start)*1000
+            (time.time()-start)*1000
 
-            )
-
-
-
-            if r.status_code in [200,204]:
-
-
-                success+=1
-
-                delays.append(delay)
+        )
 
 
 
-        except:
+        if r.status_code in [
+
+            200,
+
+            204
+
+        ]:
 
 
-            pass
-
-
-
-
-    if success==0:
-
-
-        return None
+            return delay
 
 
 
-    return {
+    except Exception as e:
 
 
-        "delay":
+        print(
 
-        int(sum(delays)/len(delays)),
+            "测速失败:",
+
+            e
+
+        )
 
 
-        "success":
 
-        success/len(urls)
-
-    }
+    return None
 
 
 
@@ -203,7 +248,6 @@ def stop_xray(process):
 
 
     try:
-
 
         process.terminate()
 
