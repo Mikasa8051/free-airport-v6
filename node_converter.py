@@ -4,9 +4,9 @@ import urllib.parse
 
 
 
-# =========================
+# =====================================================
 # 主入口
-# =========================
+# =====================================================
 
 def build_config(node):
 
@@ -17,19 +17,21 @@ def build_config(node):
             return vless_config(node)
 
 
-        if node.startswith("vmess://"):
+        elif node.startswith("vmess://"):
 
             return vmess_config(node)
 
 
-        if node.startswith("trojan://"):
+        elif node.startswith("trojan://"):
 
             return trojan_config(node)
+
 
 
     except Exception:
 
         return None
+
 
 
     return None
@@ -39,9 +41,10 @@ def build_config(node):
 
 
 
-# =========================
-# 基础配置
-# =========================
+
+# =====================================================
+# 基础 Xray 配置
+# =====================================================
 
 def base_config(outbound):
 
@@ -56,15 +59,21 @@ def base_config(outbound):
         },
 
 
+
         "inbounds":[
+
 
             {
 
+
                 "listen":"127.0.0.1",
+
 
                 "port":10808,
 
+
                 "protocol":"socks",
+
 
                 "settings":{
 
@@ -72,15 +81,20 @@ def base_config(outbound):
 
                 }
 
+
             }
+
 
         ],
 
 
 
+
         "outbounds":[
 
+
             outbound
+
 
         ]
 
@@ -93,9 +107,10 @@ def base_config(outbound):
 
 
 
-# =========================
+
+# =====================================================
 # VLESS
-# =========================
+# =====================================================
 
 def vless_config(node):
 
@@ -124,12 +139,14 @@ def vless_config(node):
 
 
 
-    # Reality Vision
+    # flow处理
 
-    if "flow" in params:
+    if params.get("flow"):
 
 
         user["flow"]=params["flow"][0]
+
+
 
 
 
@@ -157,6 +174,7 @@ def vless_config(node):
 
 
 
+
     stream={
 
 
@@ -168,9 +186,10 @@ def vless_config(node):
 
 
 
-    # =================
+
+    # -----------------
     # TLS
-    # =================
+    # -----------------
 
     if security=="tls":
 
@@ -193,6 +212,7 @@ def vless_config(node):
             )[0],
 
 
+
             "fingerprint":
 
             params.get(
@@ -210,9 +230,12 @@ def vless_config(node):
 
 
 
-    # =================
+
+
+
+    # -----------------
     # Reality
-    # =================
+    # -----------------
 
     elif security=="reality":
 
@@ -225,6 +248,7 @@ def vless_config(node):
 
 
             "show":False,
+
 
 
             "serverName":
@@ -280,9 +304,12 @@ def vless_config(node):
 
 
 
-    # =================
-    # websocket
-    # =================
+
+
+
+    # -----------------
+    # WebSocket
+    # -----------------
 
     if network=="ws":
 
@@ -328,9 +355,12 @@ def vless_config(node):
 
 
 
-    # =================
-    # grpc
-    # =================
+
+
+
+    # -----------------
+    # gRPC
+    # -----------------
 
     if network=="grpc":
 
@@ -353,6 +383,7 @@ def vless_config(node):
             "multiMode":False
 
         }
+
 
 
 
@@ -383,7 +414,7 @@ def vless_config(node):
 
                     "port":
 
-                    url.port,
+                    int(url.port),
 
 
 
@@ -394,6 +425,7 @@ def vless_config(node):
                     ]
 
                 }
+
 
             ]
 
@@ -408,19 +440,13 @@ def vless_config(node):
 
 
 
+
     return base_config(outbound)
 
 
-
-
-
-
-
-
-
-# =========================
+# =====================================================
 # Trojan
-# =========================
+# =====================================================
 
 def trojan_config(node):
 
@@ -433,6 +459,29 @@ def trojan_config(node):
         url.query
 
     )
+
+
+
+    server={
+
+
+        "address":
+
+        url.hostname,
+
+
+
+        "port":
+
+        int(url.port),
+
+
+
+        "password":
+
+        url.username
+
+    }
 
 
 
@@ -449,35 +498,14 @@ def trojan_config(node):
 
             "servers":[
 
-
-                {
-
-
-                    "address":
-
-                    url.hostname,
-
-
-
-                    "port":
-
-                    url.port,
-
-
-
-                    "password":
-
-                    url.username
-
-                }
+                server
 
             ]
 
         }
 
-
-
     }
+
 
 
 
@@ -486,32 +514,116 @@ def trojan_config(node):
     stream={
 
 
-        "security":"tls",
+        "network":
+
+        params.get(
+
+            "type",
+
+            ["tcp"]
+
+        )[0],
 
 
 
-        "tlsSettings":{
-
-
-            "serverName":
-
-            params.get(
-
-                "sni",
-
-                [url.hostname]
-
-            )[0]
-
-        }
+        "security":"tls"
 
     }
 
 
 
 
-    outbound["streamSettings"]=stream
 
+    tls={}
+
+
+
+    if params.get("sni"):
+
+
+        tls["serverName"]=params["sni"][0]
+
+
+
+    elif params.get("peer"):
+
+
+        tls["serverName"]=params["peer"][0]
+
+
+
+    else:
+
+
+        tls["serverName"]=url.hostname
+
+
+
+
+
+
+    if params.get("fp"):
+
+
+        tls["fingerprint"]=params["fp"][0]
+
+
+
+
+
+    stream["tlsSettings"]=tls
+
+
+
+
+
+
+
+    if stream["network"]=="ws":
+
+
+        stream["wsSettings"]={
+
+
+            "path":
+
+            urllib.parse.unquote(
+
+                params.get(
+
+                    "path",
+
+                    ["/"]
+
+                )[0]
+
+            ),
+
+
+
+            "headers":{
+
+
+                "Host":
+
+                params.get(
+
+                    "host",
+
+                    [url.hostname]
+
+                )[0]
+
+            }
+
+        }
+
+
+
+
+
+
+    outbound["streamSettings"]=stream
 
 
 
@@ -525,9 +637,9 @@ def trojan_config(node):
 
 
 
-# =========================
+# =====================================================
 # VMess
-# =========================
+# =====================================================
 
 def vmess_config(node):
 
@@ -535,7 +647,7 @@ def vmess_config(node):
     try:
 
 
-        raw=node.replace(
+        data=node.replace(
 
             "vmess://",
 
@@ -545,24 +657,91 @@ def vmess_config(node):
 
 
 
-        raw += "=" * (
+        data=data.strip()
 
-            -len(raw) % 4
+
+
+        # 兼容缺少=
+
+        data += "=" * (
+
+            (-len(data)) % 4
 
         )
 
+
+
+        raw=base64.b64decode(
+
+            data
+
+        )
 
 
 
         info=json.loads(
 
-            base64.b64decode(
+            raw.decode(
 
-                raw
+                "utf-8",
 
-            ).decode()
+                errors="ignore"
+
+            )
 
         )
+
+
+
+
+
+
+
+        user={
+
+
+            "id":
+
+            info.get(
+
+                "id",
+
+                ""
+
+            ),
+
+
+
+            "alterId":
+
+            int(
+
+                info.get(
+
+                    "aid",
+
+                    0
+
+                )
+
+            ),
+
+
+
+            "security":
+
+            info.get(
+
+                "scy",
+
+                "auto"
+
+            )
+
+        }
+
+
+
 
 
 
@@ -597,31 +776,7 @@ def vmess_config(node):
 
                         "users":[
 
-
-                            {
-
-
-                                "id":
-
-                                info["id"],
-
-
-
-                                "alterId":
-
-                                int(
-
-                                    info.get(
-
-                                        "aid",
-
-                                        0
-
-                                    )
-
-                                )
-
-                            }
+                            user
 
                         ]
 
@@ -636,8 +791,9 @@ def vmess_config(node):
 
 
 
-        stream={
 
+
+        stream={
 
 
             "network":
@@ -654,6 +810,10 @@ def vmess_config(node):
 
 
 
+
+
+
+        # TLS
 
         if info.get("tls")=="tls":
 
@@ -679,6 +839,18 @@ def vmess_config(node):
 
                     )
 
+                ),
+
+
+
+                "fingerprint":
+
+                info.get(
+
+                    "fp",
+
+                    "chrome"
+
                 )
 
             }
@@ -686,6 +858,10 @@ def vmess_config(node):
 
 
 
+
+
+
+        # websocket
 
         if stream["network"]=="ws":
 
@@ -727,12 +903,14 @@ def vmess_config(node):
 
 
 
+
+
         outbound["streamSettings"]=stream
 
 
 
-
         return base_config(outbound)
+
 
 
 
