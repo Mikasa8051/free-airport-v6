@@ -1,27 +1,20 @@
-name: Update Free Nodes
-
-
-permissions:
-
-  contents: write
-
-  pages: write
-
-  id-token: write
-
+name: Update Subscription
 
 
 on:
-
 
   schedule:
 
     - cron: "0 */6 * * *"
 
 
-
   workflow_dispatch:
 
+
+
+permissions:
+
+  contents: write
 
 
 
@@ -31,7 +24,6 @@ jobs:
   build:
 
 
-
     runs-on: ubuntu-latest
 
 
@@ -39,6 +31,9 @@ jobs:
     steps:
 
 
+      # =====================
+      # 拉取代码
+      # =====================
 
       - name: Checkout
 
@@ -51,7 +46,9 @@ jobs:
 
 
 
-
+      # =====================
+      # Python环境
+      # =====================
 
       - name: Setup Python
 
@@ -59,35 +56,51 @@ jobs:
 
         with:
 
-          python-version: "3.x"
+          python-version: "3.12"
 
 
 
 
-
-
+      # =====================
+      # 安装依赖
+      # =====================
 
       - name: Install requirements
 
         run: |
+
+          python -m pip install --upgrade pip
 
           pip install -r requirements.txt
 
 
 
 
+      # =====================
+      # 清理旧文件
+      # =====================
 
-
-      - name: Install Xray
+      - name: Clean old files
 
         run: |
 
-          python xray_setup.py
+          rm -rf __pycache__
+
+          rm -f *.pyc
+
+          rm -f xray.log
+
+          rm -f xray_error.log
+
+          rm -f xray_test.json
 
 
 
 
 
+      # =====================
+      # 运行生成器
+      # =====================
 
       - name: Run generator
 
@@ -99,95 +112,72 @@ jobs:
 
 
 
+      # =====================
+      # 检查输出
+      # =====================
 
-      # 只保存订阅输出，不提交临时文件
+      - name: Check result
+
+        run: |
+
+          echo "========== OUTPUT =========="
+
+          ls -lh output || true
+
+
+          echo "========== DATABASE =========="
+
+          ls -lh database.db || true
+
+
+
+
+
+      # =====================
+      # 保存结果
+      # =====================
 
       - name: Save result
 
         run: |
 
 
-          git config user.name github-actions
+          git config user.name "github-actions"
 
 
-          git config user.email github-actions@github.com
-
-
-
-          git add output/
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
 
 
-          if git diff --cached --quiet; then
+          git add output/ database.db .gitignore
 
-            echo "No changes"
 
-            exit 0
+
+          if git diff --cached --quiet;
+
+          then
+
+              echo "No changes"
+
+          else
+
+              git commit -m "auto update"
 
           fi
 
 
 
-          git commit -m "auto update"
+
+          git fetch origin main
 
 
 
-          git pull --rebase origin main
+          git checkout main
 
 
 
-          git push origin main
+          git reset --hard origin/main
 
 
 
-
-
-
-
-      - name: Upload Pages artifact
-
-        uses: actions/upload-pages-artifact@v3
-
-        with:
-
-          path: ./output
-
-
-
-
-
-
-
-
-  deploy:
-
-
-
-    needs: build
-
-
-
-    runs-on: ubuntu-latest
-
-
-
-
-    environment:
-
-
-
-      name: github-pages
-
-
-
-
-
-    steps:
-
-
-
-      - name: Deploy Pages
-
-
-
-        uses: actions/deploy-pages@v4
+          git push origin main --force
