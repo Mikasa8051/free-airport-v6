@@ -31,8 +31,8 @@ def real_test(node):
         process=start_xray(config)
 
 
-
-        time.sleep(1)
+        # 等待Xray启动
+        time.sleep(0.5)
 
 
 
@@ -44,7 +44,7 @@ def real_test(node):
 
 
 
-    except Exception:
+    except Exception as e:
 
 
         return None
