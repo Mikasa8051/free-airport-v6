@@ -236,17 +236,20 @@ print(
 
 
 # =====================
-# 限制测速数量
+# 限制测试数量
 # =====================
 
+nodes=nodes[
 
-test_count=config.get(
+    :config.get(
 
-    "test_nodes",
+        "test_nodes",
 
-    100
+        100
 
-)
+    )
+
+]
 
 
 nodes=nodes[:test_count]
@@ -425,7 +428,7 @@ success=[]
 
 with ThreadPoolExecutor(
 
-    max_workers=5
+    max_workers=20
 
 ) as pool:
 
