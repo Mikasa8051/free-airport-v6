@@ -1,69 +1,43 @@
-def calc(delay, region, success, config):
+# score.py
 
 
-    # 延迟评分
+def calc(delay, region, config):
 
-    if delay < 50:
+    try:
 
-        delay_score = 100
+        delay = float(delay)
 
-    elif delay < 100:
+    except:
 
-        delay_score = 90
-
-    elif delay < 200:
-
-        delay_score = 75
-
-    elif delay < 300:
-
-        delay_score = 55
-
-    else:
-
-        delay_score = 30
+        return 0
 
 
 
-    # 成功率评分
-
-    success_score = success * 100
-
+    # 基础分
+    score = 1000 - delay
 
 
-    # 地区评分
 
-    region_score = config.get(
+    # 地区加分
 
-        "region_weight",
-
-        {}
-
-    ).get(
-
-        region,
-
-        30
-
+    preferred = config.get(
+        "preferred_region",
+        []
     )
 
 
+    if region in preferred:
 
-    # 综合评分
-
-    score = (
-
-        delay_score * 0.35
-
-        +
-
-        success_score * 0.40
-
-        +
-
-        region_score * 0.25
-
-    )
+        score += 100
 
 
-    return round(score,2)
+
+    # 限制最低分
+
+    if score < 0:
+
+        score = 0
+
+
+
+    return int(score)
