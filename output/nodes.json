@@ -6,6 +6,60 @@
     1019.0
   ],
   [
+    "vless://a9d1b03b-e73c-a9ce-6520-1f988c20749e@ansooyefilter-production-454e.up.railway.app:443?encryption=none&security=tls&type=ws&host=ansooyefilter-production-454e.up.railway.app&path=/ws/a9d1b03b-e73c-a9ce-6520-1f988c20749e&sni=ansooyefilter-production-454e.up.railway.app&fp=chrome&alpn=http/1.1#",
+    "OTHER",
+    88.0,
+    1012.0
+  ],
+  [
+    "vless://7ff55eb0-eff4-4d71-ad1c-e6fe1a6c68d9@94.130.179.44:1234?security=&encryption=none&host=play.google.com&headerType=http&type=tcp#",
+    "DE",
+    88.0,
+    1012.0
+  ],
+  [
+    "vless://28beee5e-40ab-3c36-b797-1e4ecf27d0a0@[2401:c080:1000:1443:5400:6ff:fe41:a334]:443?encryption=none&type=xhttp&headerType=&fp=ios&host=s3019.wagahaha.xyz&path=ssp-xhttp&flow=&security=tls&sni=u729792us3019.wagahaha.xyz&serviceName=&mode=&alpn=#",
+    "US",
+    89.0,
+    1011.0
+  ],
+  [
+    "vless://5d02517f-63d5-3e9f-b467-1bcf4d4e25d3@[2001:19f0:7001:55a7:5400:6ff:fe5e:4a6c]:443?encryption=none&type=tcp&headerType=&fp=firefox&host=e135b21fs10030.gogocs.xyz&path=&flow=xtls-rprx-vision&security=tls&sni=u695099ue135b21fs10030.gogocs.xyz&serviceName=&mode=&alpn=h2%2Chttp%2F1.1#",
+    "DE",
+    90.0,
+    1010.0
+  ],
+  [
+    "vmess://eyJhZGQiOiJubHQucmVhdGEuaXIiLCJhaWQiOiIwIiwiaG9zdCI6IiIsImlkIjoiNjI0NGM0MWEtZjRjMS00NzMzLWE2NTQtYzM4Zjc3MjliMTNjIiwibmV0IjoidGNwIiwicGF0aCI6IiIsInBvcnQiOiIxMDIwIiwicHMiOiJCeSBFYnJhU2hhIPCfkqMiLCJzY3kiOiJhdXRvIiwic2tpcC1jZXJ0LXZlcmlmeSI6dHJ1ZSwic25pIjoiIiwidGVzdF9uYW1lIjoiSVLkvIrmnJciLCJ0bHMiOiJub25lIiwidHlwZSI6Im5vbmUiLCJ2IjoiMiJ9",
+    "OTHER",
+    98.0,
+    1002.0
+  ],
+  [
+    "vmess://eyJhZGQiOiJuMTc0NzYyNDI3NC40dTltYS5pY3UiLCJhaWQiOiIwIiwiaG9zdCI6Im4xNzQ3NjI0Mjc0LjR1OW1hLmljdSIsImlkIjoiZDhkYWY1MDctYTRhYy00ZWVhLTgzOTktOGYwY2QwNzFlYjUyIiwibmV0Ijoid3MiLCJwYXRoIjoiLyIsInBvcnQiOiI0NDMiLCJwcyI6IkJ5IEVicmFTaGEg8J+Vt++4jyIsInNraXAtY2VydC12ZXJpZnkiOnRydWUsInRscyI6InRscyIsInR5cGUiOiJub25lIiwidiI6IjIifQ==",
+    "HK",
+    98.0,
+    1002.0
+  ],
+  [
+    "vmess://eyJhZGQiOiIxNTQuMjEuODMuNzciLCJhaWQiOiIwIiwiaG9zdCI6Ind3dy5iaW5nLmNvbSIsImlkIjoiMDRiY2NmYTEtYTZhOC00YWNlLTk5MWYtNDU0NjI0YTg3NjZmIiwibmV0Ijoid3MiLCJwYXRoIjoiMDRiY2NmYTEtYTZhOC00YWNlLTk5MWYtNDU0NjI0YTg3NjZmLXZtIiwicG9ydCI6Ijg4ODAiLCJwcyI6IkJ5IEVicmFTaGEg8J+nqiIsInNjeSI6ImF1dG8iLCJza2lwLWNlcnQtdmVyaWZ5Ijp0cnVlLCJzbmkiOiIiLCJ0ZXN0X25hbWUiOiJVUyIsInRscyI6IiIsInR5cGUiOiJub25lIiwidiI6IjIifQ==",
+    "JP",
+    98.0,
+    1002.0
+  ],
+  [
+    "vless://5d02517f-63d5-3e9f-b467-1bcf4d4e25d3@[2605:6400:20:dfe:9dab:7f3:dabf:de28]:443?encryption=none&type=tcp&headerType=&fp=firefox&host=5d9782b7s408.ccgfw.online&path=&flow=xtls-rprx-vision&security=tls&sni=u695099u5d9782b7s408.ccgfw.online&serviceName=&mode=&alpn=h2%2Chttp%2F1.1#",
+    "DE",
+    107.0,
+    993.0
+  ],
+  [
+    "vless://28beee5e-40ab-3c36-b797-1e4ecf27d0a0@[2401:c080:1c02:9d4:5400:6ff:fe44:7c1e]:443?encryption=none&type=tcp&headerType=&fp=ios&host=s4150.wagahaha.xyz&path=&flow=xtls-rprx-vision&security=tls&sni=u729792us4150.wagahaha.xyz&serviceName=&mode=&alpn=h2%2Chttp%2F1.1#",
+    "US",
+    146.0,
+    954.0
+  ],
+  [
     "vmess://eyJhZGQiOiIxNjUuMTQwLjIxNi4xNDIiLCJhaWQiOiIwIiwiYWxwbiI6IiIsImZwIjoiIiwiaG9zdCI6Ikxldmlrb0NvbmZpZyIsImlkIjoiYjY1YTJkNjktNTYzNC00MmEyLWU0YmUtNTRlOGE2MTc2OTAwIiwiaW5zZWN1cmUiOiIwIiwibmV0IjoidGNwIiwicGF0aCI6Ii9MZXZpa29Db25maWciLCJwb3J0IjoiNDQzIiwicHMiOiJCeSBFYnJhU2hhIPCfk5siLCJzY3kiOiJhdXRvIiwic2tpcC1jZXJ0LXZlcmlmeSI6dHJ1ZSwic25pIjoiIiwidGxzIjoiIiwidHlwZSI6Im5vbmUiLCJ2IjoiMiJ9",
     "OTHER",
     267.0,
@@ -58,12 +112,6 @@
     "JP",
     322.0,
     728.0
-  ],
-  [
-    "vless://5d02517f-63d5-3e9f-b467-1bcf4d4e25d3@[2001:19f0:7001:55a7:5400:6ff:fe5e:4a6c]:443?encryption=none&type=tcp&headerType=&fp=firefox&host=e135b21fs10030.gogocs.xyz&path=&flow=xtls-rprx-vision&security=tls&sni=u695099ue135b21fs10030.gogocs.xyz&serviceName=&mode=&alpn=h2%2Chttp%2F1.1#",
-    "DE",
-    323.0,
-    727.0
   ],
   [
     "vless://9f0baff8-bdee-4de9-9515-bcc4932b41fa@194.76.154.31:40443?type=tcp&headerType=none&security=reality&pbk=MN6QjUHDUXyteMdR-cDna89fq4X3qgQhLnNqTtRUbBQ&fp=qq&sni=deepl.com&sid=a8ae&spx=%2F#",
@@ -150,6 +198,12 @@
     337.0
   ],
   [
+    "vmess://eyJhZGQiOiIxNjUuMTQwLjIxNi4xNDIiLCJhaWQiOiIwIiwiaG9zdCI6IiIsImlkIjoiYjY1YTJkNjktNTYzNC00MmEyLWU0YmUtNTRlOGE2MTc2OTAwIiwibmV0IjoidGNwIiwicGF0aCI6Ii9MZXZpa29Db25maWciLCJwb3J0IjoiNDQzIiwicHMiOiJCeSBFYnJhU2hhIPCfpogiLCJzY3kiOiJhdXRvIiwic2tpcC1jZXJ0LXZlcmlmeSI6dHJ1ZSwic25pIjoiIiwidGVzdF9uYW1lIjoiVVM0IiwidGxzIjoiIiwidHlwZSI6Im5vbmUiLCJ2IjoiMiJ9",
+    "OTHER",
+    678.0,
+    322.0
+  ],
+  [
     "vmess://eyJhZGQiOiIxNjUuMTQwLjIxNi4xNDIiLCJhaWQiOiIwIiwiaG9zdCI6IiIsImlkIjoiYjY1YTJkNjktNTYzNC00MmEyLWU0YmUtNTRlOGE2MTc2OTAwIiwibmV0IjoidGNwIiwicGF0aCI6IiIsInBvcnQiOiI0NDMiLCJwcyI6IkJ5IEVicmFTaGEg8J+Mqu+4jyIsInNjeSI6ImF1dG8iLCJza2lwLWNlcnQtdmVyaWZ5Ijp0cnVlLCJzbmkiOiIiLCJ0ZXN0X25hbWUiOiJVUzciLCJ0bHMiOiIiLCJ0eXBlIjoibm9uZSIsInYiOiIyIn0=",
     "JP",
     684.0,
@@ -190,5 +244,11 @@
     "JP",
     739.0,
     261.0
+  ],
+  [
+    "vless://28beee5e-40ab-3c36-b797-1e4ecf27d0a0@[2401:c080:1c00:21dd:5400:6ff:fe43:2737]:443?encryption=none&type=xhttp&headerType=&fp=ios&host=s3350.wagahaha.xyz&path=ssp-xhttp&flow=&security=tls&sni=u729792us3350.wagahaha.xyz&serviceName=&mode=&alpn=#",
+    "US",
+    757.0,
+    243.0
   ]
 ]
