@@ -12,5 +12,12 @@ xray_test.json
 *.tmp
 *.log
 
+# 数据库临时文件
+database.db-journal
+
+# Python环境
+venv/
+.env/
+
 # 系统文件
 .DS_Store
