@@ -1,8 +1,15 @@
+# =====================
+# main.py V3
+# 免费节点自动筛选生成器
+# =====================
+
+
 import requests
 import re
 import json
 import base64
 import os
+
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -10,10 +17,14 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from database import init
 from database import save
 from database import get_best
+from database import clean_old
+
 
 from score import calc
 
+
 from real_test import real_test
+
 
 
 
@@ -21,7 +32,13 @@ from real_test import real_test
 # 初始化数据库
 # =====================
 
+
 init()
+
+
+# 清理7天以前数据
+
+clean_old()
 
 
 
@@ -29,17 +46,20 @@ init()
 # 读取配置
 # =====================
 
+
 with open(
+
     "config.json",
+
     "r",
+
     encoding="utf-8"
+
 ) as f:
+
 
     config=json.load(f)
 
-
-
-nodes=set()
 
 
 
@@ -47,13 +67,24 @@ nodes=set()
 # 读取节点源
 # =====================
 
+
+nodes=set()
+
+
+
 with open(
+
     "sources.txt",
+
     "r",
+
     encoding="utf-8"
+
 ) as f:
 
+
     sources=f.readlines()
+
 
 
 
@@ -68,12 +99,16 @@ for url in sources:
         continue
 
 
+
     try:
 
 
         print(
+
             "读取源:",
+
             url
+
         )
 
 
@@ -119,10 +154,9 @@ for url in sources:
 
             "读取失败:",
 
-            url
+            e
 
         )
-
 
 
 
@@ -142,10 +176,10 @@ nodes=list(nodes)
 
 
 
-
 # =====================
 # IPv6过滤
 # =====================
+
 
 def is_ipv6(node):
 
@@ -161,7 +195,6 @@ def is_ipv6(node):
         )
 
     )
-
 
 
 
@@ -203,21 +236,30 @@ print(
 
 
 # =====================
-# 限制测试数量
+# 限制测速数量
 # =====================
 
-nodes=nodes[
 
-    :config.get(
+test_count=config.get(
 
-        "test_nodes",
+    "test_nodes",
 
-        300
+    100
 
-    )
+)
 
-]
 
+nodes=nodes[:test_count]
+
+
+
+print(
+
+    "进入测速:",
+
+    len(nodes)
+
+)
 
 
 
@@ -226,6 +268,7 @@ nodes=nodes[
 # =====================
 # 地区识别
 # =====================
+
 
 def get_region(node):
 
@@ -266,18 +309,7 @@ def get_region(node):
 
         "TW":[
 
-            "tw",
-
-            "taiwan"
-
-        ],
-
-
-        "KR":[
-
-            "kr",
-
-            "korea"
+            "tw"
 
         ],
 
@@ -293,9 +325,7 @@ def get_region(node):
 
         "DE":[
 
-            "de",
-
-            "germany"
+            "de"
 
         ],
 
@@ -304,33 +334,9 @@ def get_region(node):
 
             "nl"
 
-        ],
-
-
-        "GB":[
-
-            "uk",
-
-            "gb"
-
-        ],
-
-
-        "FR":[
-
-            "fr"
-
-        ],
-
-
-        "CA":[
-
-            "ca"
-
         ]
 
     }
-
 
 
 
@@ -343,9 +349,7 @@ def get_region(node):
 
             if key in n:
 
-
                 return region
-
 
 
 
@@ -355,11 +359,10 @@ def get_region(node):
 
 
 
-
-
 # =====================
-# 真实测速
+# 单节点测试
 # =====================
+
 
 def check(node):
 
@@ -373,9 +376,7 @@ def check(node):
 
         if delay is None:
 
-
             return None
-
 
 
 
@@ -383,13 +384,11 @@ def check(node):
 
             "max_delay",
 
-            5000
+            3000
 
         ):
 
-
             return None
-
 
 
 
@@ -402,13 +401,10 @@ def check(node):
         )
 
 
-
     except Exception:
 
 
         return None
-
-
 
 
 
@@ -423,78 +419,55 @@ print(
 
 
 
-
 success=[]
-
-
 
 
 
 with ThreadPoolExecutor(
 
-    max_workers=10
+    max_workers=5
 
 ) as pool:
 
 
-
-    jobs=[
+    tasks=[
 
 
         pool.submit(
 
             check,
 
-            n
+            node
 
         )
 
+        for node in nodes
 
-        for n in nodes
 
     ]
 
 
 
-
-    for job in as_completed(jobs):
-
-
-        try:
+    for task in as_completed(tasks):
 
 
-            result=job.result()
+        result=task.result()
 
 
 
-            if result:
+        if result:
 
 
-                success.append(result)
-
-
-
-                print(
-
-                    "测速成功:",
-
-                    len(success)
-
-                )
-
-
-        except Exception as e:
+            success.append(result)
 
 
             print(
 
-                "测速任务错误:",
+                "测速成功:",
 
-                e
+                len(success)
 
             )
-
-
 
 
 
@@ -512,147 +485,103 @@ print(
 
 
 
-
 # =====================
-# 没有节点直接结束
+# 保存数据库
 # =====================
 
-if len(success)==0:
-
-
-    print(
-
-        "没有可用节点"
-
-    )
-
-
-    exit(0)
-
-
-
-
-
-
-
-# =====================
-# 保存成功节点
-# =====================
 
 for node,delay in success:
 
 
-
-    try:
-
-
-        region=get_region(node)
+    region=get_region(node)
 
 
+    score=calc(
 
-        score=calc(
+        delay,
 
-            node,
+        region,
 
-            delay,
+        config
 
-            region,
-
-            config
-
-        )
+    )
 
 
+    save(
 
-        save(
+        node,
 
-            node,
+        region,
 
-            region,
+        delay,
 
-            delay,
+        score
 
-            score
-
-        )
-
-
-    except Exception as e:
-
-
-        print(
-
-            "保存失败:",
-
-            e
-
-        )
-
-
-
-
+    )
 
 
 
 
 
 # =====================
-# 输出订阅
+# 输出最佳节点
 # =====================
 
 
-try:
+best=get_best(
 
-    best = get_best(
-        config["max_nodes"]
+    config.get(
+
+        "max_nodes",
+
+        30
+
     )
 
-
-except Exception as e:
-
-    print(
-        "获取最佳节点失败:",
-        e
-    )
-
-    best = []
-
-
-
-os.makedirs(
-    "output",
-    exist_ok=True
 )
 
 
 
-out_nodes = []
+os.makedirs(
+
+    "output",
+
+    exist_ok=True
+
+)
+
+
+
+nodes_out=[]
+
 
 
 for item in best:
 
-    if isinstance(item, tuple):
 
-        out_nodes.append(
-            item[0]
-        )
+    nodes_out.append(
 
-    elif isinstance(item, dict):
+        item[0]
 
-        if "node" in item:
-
-            out_nodes.append(
-                item["node"]
-            )
+    )
 
 
 
-if out_nodes:
 
 
-    sub = base64.b64encode(
+if nodes_out:
 
-        "\n".join(out_nodes).encode()
+
+    data="\n".join(
+
+        nodes_out
+
+    )
+
+
+    sub=base64.b64encode(
+
+        data.encode()
 
     ).decode()
 
@@ -677,7 +606,9 @@ else:
 
 
     print(
-        "没有可用节点，跳过订阅生成"
+
+        "没有可用节点"
+
     )
 
 
@@ -715,7 +646,7 @@ print(
 
     "完成:",
 
-    len(out_nodes),
+    len(nodes_out),
 
     "节点"
 
