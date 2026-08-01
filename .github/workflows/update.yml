@@ -81,25 +81,25 @@ jobs:
 
 
       # =====================
-      # 清理临时文件
+      # 清理旧文件
       # =====================
 
       - name: Clean old files
 
         run: |
 
-          rm -rf __pycache__
+         rm -rf __pycache__
 
-          rm -rf */__pycache__
+         rm -f *.pyc
 
-          rm -f *.pyc
+         rm -f xray.log
 
-          rm -f xray.log
-
-          rm -f xray_error.log
-
-          rm -f xray_test.json
-
+         rm -f xray_error.log
+ 
+         rm -f xray_test.json
+ 
+         rm -f output/status.json
+ 
 
 
 
