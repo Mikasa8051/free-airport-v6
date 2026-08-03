@@ -10,7 +10,7 @@ on:
 jobs:
 
 
-  test:
+  test-trojan:
 
 
     runs-on: ubuntu-latest
@@ -20,97 +20,144 @@ jobs:
     steps:
 
 
-    # =========================
-    # 拉取代码
-    # =========================
+      # ==========================
+      # 拉取代码
+      # ==========================
 
-    - name: Checkout
+      - name: Checkout
 
-      uses: actions/checkout@v4
-
-
-
-    # =========================
-    # Python环境
-    # =========================
-
-    - name: Setup Python
-
-      uses: actions/setup-python@v5
-
-      with:
-
-        python-version: "3.12"
+        uses: actions/checkout@v4
 
 
 
-    # =========================
-    # 安装依赖
-    # =========================
+      # ==========================
+      # Python环境
+      # ==========================
 
-    - name: Install requirements
+      - name: Setup Python
 
-      run: |
+        uses: actions/setup-python@v5
 
-        python -m pip install --upgrade pip
+        with:
 
-        pip install requests pysocks
-
-
-
-    # =========================
-    # 下载Xray
-    # =========================
-
-    - name: Install Xray
-
-      run: |
-
-        wget -q https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
-
-        unzip -q Xray-linux-64.zip
-
-        chmod +x xray
-
-        ./xray version
+          python-version: "3.12"
 
 
 
-    # =========================
-    # 测试Trojan
-    # =========================
+      # ==========================
+      # 安装Python依赖
+      # ==========================
 
-    - name: Run Trojan test
+      - name: Install dependencies
 
-      run: |
+        run: |
 
-        python test_node.py
+          python -m pip install --upgrade pip
 
-
-
-    # =========================
-    # 输出调试信息
-    # =========================
-
-    - name: Show debug logs
-
-      if: always()
-
-      run: |
-
-
-        echo "========== XRAY LOG =========="
-
-        cat xray.log || true
+          pip install requests pysocks
 
 
 
-        echo "========== XRAY ERROR =========="
+      # ==========================
+      # 安装兼容版Xray
+      # ==========================
 
-        cat xray_error.log || true
+      - name: Install Xray
+
+        run: |
+
+          echo "Download Xray compatible version"
+
+          wget -q https://github.com/XTLS/Xray-core/releases/download/v25.12.8/Xray-linux-64.zip
+
+
+          unzip -q Xray-linux-64.zip
+
+
+          chmod +x xray
+
+
+          echo "========== XRAY VERSION =========="
+
+          ./xray version
 
 
 
-        echo "========== XRAY CONFIG =========="
+      # ==========================
+      # 测试Trojan节点
+      # ==========================
 
-        cat xray_test.json || true
+      - name: Run Trojan test
+
+        run: |
+
+          python test_node.py
+
+
+
+      # ==========================
+      # 输出调试文件
+      # ==========================
+
+      - name: Debug Xray
+
+        if: always()
+
+        run: |
+
+
+          echo "========== XRAY LOG =========="
+
+          if [ -f xray.log ]; then
+
+            cat xray.log
+
+          else
+
+            echo "xray.log not found"
+
+          fi
+
+
+
+          echo "========== XRAY ERROR =========="
+
+          if [ -f xray_error.log ]; then
+
+            cat xray_error.log
+
+          else
+
+            echo "xray_error.log not found"
+
+          fi
+
+
+
+          echo "========== XRAY CONFIG =========="
+
+          if [ -f xray_test.json ]; then
+
+            cat xray_test.json
+
+          else
+
+            echo "xray_test.json not found"
+
+          fi
+
+
+
+      # ==========================
+      # 查看目录
+      # ==========================
+
+      - name: Show files
+
+        if: always()
+
+        run: |
+
+          echo "========== FILES =========="
+
+          ls -la
