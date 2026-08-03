@@ -19,7 +19,9 @@ jobs:
     steps:
 
 
+      # =========================
       # 拉取代码
+      # =========================
 
       - name: Checkout
 
@@ -27,7 +29,9 @@ jobs:
 
 
 
-      # Python
+      # =========================
+      # Python环境
+      # =========================
 
       - name: Setup Python
 
@@ -39,7 +43,9 @@ jobs:
 
 
 
+      # =========================
       # 安装依赖
+      # =========================
 
       - name: Install dependencies
 
@@ -51,7 +57,9 @@ jobs:
 
 
 
+      # =========================
       # 安装Xray
+      # =========================
 
       - name: Install Xray
 
@@ -67,7 +75,9 @@ jobs:
 
 
 
-      # 1. 采集节点
+      # =========================
+      # 节点采集
+      # =========================
 
       - name: Run collector
 
@@ -77,7 +87,28 @@ jobs:
 
 
 
-      # 2. 测试节点
+      # =========================
+      # 检查节点文件
+      # =========================
+
+      - name: Check generated files
+
+        run: |
+
+          echo "当前目录:"
+
+          ls -lh
+
+
+          echo "nodes数量:"
+
+          wc -l nodes.txt
+
+
+
+      # =========================
+      # 节点测试
+      # =========================
 
       - name: Run tester
 
@@ -87,25 +118,9 @@ jobs:
 
 
 
-      # 保存结果
-
-      - name: Upload result
-
-        if: always()
-
-        uses: actions/upload-artifact@v4
-
-        with:
-
-          name: tester-result
-
-          path: |
-
-            nodes_tested.json
-
-            xray_test.json
-
-
+      # =========================
+      # 上传测试结果
+      # =========================
 
       - name: Upload tester result
 
@@ -123,4 +138,6 @@ jobs:
 
             nodes_score.json
 
-            nodes.txt            
+            nodes.txt
+
+            xray_test.json
