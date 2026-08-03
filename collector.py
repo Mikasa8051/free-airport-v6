@@ -3,12 +3,10 @@ import requests
 import base64
 import json
 import re
-from urllib.parse import urlparse
+import hashlib
+from urllib.parse import urlparse, parse_qs
 
 
-# =========================
-# 配置
-# =========================
 
 SOURCES = [
 
@@ -21,54 +19,40 @@ SOURCES = [
 ]
 
 
-# 是否允许IPv6
+
+# IPv6开关
 
 ALLOW_IPV6 = False
 
 
 
-# 黑名单域名
+# 黑名单
 
-BLOCK_HOSTS = [
+
+BLOCK_HOSTS=[
 
     "localhost",
 
     "example.com",
 
-    "railway.app",
+    "127.0.0.1",
 
-    "workers.dev",
-
-    "pages.dev",
-
-    "herokuapp.com"
-
-]
-
-
-
-# 假UUID
-
-BAD_UUID = [
-
-    "00000000",
-
-    "11111111",
-
-    "88888888"
+    "0.0.0.0",
 
 ]
 
 
 
 # =========================
-# 获取订阅
+# 下载订阅
 # =========================
 
 
 def fetch(url):
 
+
     try:
+
 
         print()
 
@@ -78,7 +62,7 @@ def fetch(url):
         )
 
 
-        r = requests.get(
+        r=requests.get(
 
             url,
 
@@ -94,17 +78,20 @@ def fetch(url):
         )
 
 
-        if r.status_code == 200:
+        if r.status_code==200:
 
             return r.text
 
 
+
     except Exception as e:
+
 
         print(
             "读取失败:",
             e
         )
+
 
 
     return None
@@ -120,39 +107,35 @@ def fetch(url):
 
 def extract_nodes(data):
 
+
     nodes=[]
 
 
     for line in data.splitlines():
 
+
         line=line.strip()
+
 
 
         if (
 
-            line.startswith(
-                "vmess://"
-            )
+            line.startswith("vmess://")
 
             or
 
-            line.startswith(
-                "vless://"
-            )
+            line.startswith("vless://")
 
             or
 
-            line.startswith(
-                "trojan://"
-            )
+            line.startswith("trojan://")
 
             or
 
-            line.startswith(
-                "ss://"
-            )
+            line.startswith("ss://")
 
         ):
+
 
             nodes.append(line)
 
