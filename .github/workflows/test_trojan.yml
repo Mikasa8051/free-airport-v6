@@ -84,15 +84,14 @@ jobs:
 
 
       # ==========================
-      # 测试Trojan节点
+      # 运行主流程测试
       # ==========================
 
-      - name: Run Trojan test
+      - name: Run main pipeline test
 
         run: |
 
-          python test_node.py
-
+          python main.py
 
 
       # ==========================
