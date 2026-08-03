@@ -44,9 +44,7 @@ NODE_LIST = [
 def get_region(node):
 
 
-    if "#"
-
-    in node:
+    if "#" in node:
 
 
         return node.split("#")[-1]
@@ -58,8 +56,9 @@ def get_region(node):
 
 
 
+
 # =========================
-# 测试单个节点
+# 测试单节点
 # =========================
 
 def test_node(node):
@@ -67,18 +66,17 @@ def test_node(node):
 
     print()
 
-    print("======================")
+    print("========================")
 
     print(
-        "测试节点:"
+        "开始测试节点"
     )
 
     print(
-        node[:60],
-        "..."
+        node[:80]
     )
 
-    print("======================")
+    print("========================")
 
 
 
@@ -101,7 +99,6 @@ def test_node(node):
 
         )
 
-
         return
 
 
@@ -116,11 +113,13 @@ def test_node(node):
     try:
 
 
+
         process = start_xray(
 
             config
 
         )
+
 
 
         print(
@@ -131,7 +130,11 @@ def test_node(node):
 
 
 
+
+
         result = test_proxy()
+
+
 
 
 
@@ -143,18 +146,20 @@ def test_node(node):
 
 
 
+
+
         print()
 
         print(
 
-            "测试结果"
+            "======测试结果======"
 
         )
 
 
         print(
 
-            "状态:",
+            "可用:",
 
             result["alive"]
 
@@ -203,18 +208,17 @@ def test_node(node):
 
 
 
-        region = get_region(
 
-            node
 
-        )
+
+        # 保存数据库
 
 
         save_node(
 
             node,
 
-            region
+            get_region(node)
 
         )
 
@@ -231,9 +235,10 @@ def test_node(node):
         )
 
 
+
         print(
 
-            "保存数据库成功"
+            "数据库保存成功"
 
         )
 
@@ -241,7 +246,9 @@ def test_node(node):
 
 
 
+
     except Exception as e:
+
 
 
         print(
@@ -254,7 +261,10 @@ def test_node(node):
 
 
 
+
+
     finally:
+
 
 
         stop_xray(
@@ -283,6 +293,7 @@ def test_node(node):
 def main():
 
 
+
     print(
 
         "初始化数据库"
@@ -296,9 +307,14 @@ def main():
 
     print(
 
-        "开始节点测试"
+        "开始测试",
+
+        len(NODE_LIST),
+
+        "个节点"
 
     )
+
 
 
 
@@ -316,11 +332,12 @@ def main():
 
 
 
+
     print()
 
     print(
 
-        "======数据库结果======"
+        "======数据库TOP节点======"
 
     )
 
@@ -334,14 +351,16 @@ def main():
 
 
 
-    for n in nodes:
+    for item in nodes:
 
 
         print(
 
-            n
+            item
 
         )
+
+
 
 
 
