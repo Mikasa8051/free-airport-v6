@@ -68,10 +68,13 @@ def start_xray(config):
 
 
 
+    # 等待Xray启动
+
     time.sleep(2)
 
 
     return process
+
 
 
 
@@ -93,10 +96,12 @@ def check_port():
 
 
         s.connect(
+
             (
                 "127.0.0.1",
                 LOCAL_PORT
             )
+
         )
 
 
@@ -115,8 +120,9 @@ def check_port():
 
 
 
+
 # =========================
-# 流式测速
+# 下载测速
 # =========================
 
 def test_speed():
@@ -126,11 +132,14 @@ def test_speed():
 
 
         print(
+
             "代理端口启动失败"
+
         )
 
 
         return None
+
 
 
 
@@ -150,11 +159,26 @@ def test_speed():
 
 
 
+
+
     url = (
 
         "http://cachefly.cachefly.net/10mb.test"
 
     )
+
+
+
+    headers = {
+
+
+        "User-Agent":
+
+        "Mozilla/5.0"
+
+    }
+
+
 
 
 
@@ -174,9 +198,11 @@ def test_speed():
 
             proxies=proxies,
 
+            headers=headers,
+
             stream=True,
 
-            timeout=(10,30)
+            timeout=(10,60)
 
         ) as r:
 
@@ -200,11 +226,13 @@ def test_speed():
 
 
 
+
             for chunk in r.iter_content(
 
                 chunk_size=8192
 
             ):
+
 
 
                 if chunk:
@@ -215,26 +243,24 @@ def test_speed():
 
 
 
-                # 下载超过100KB开始计算
-
-                if total >= 100000:
-
-
-                    break
-
-
-
 
 
         end = time.time()
 
 
 
-        cost = end-start
+        cost = end - start
 
 
 
         if total <= 0:
+
+
+            print(
+
+                "没有下载数据"
+
+            )
 
 
             return None
@@ -242,7 +268,9 @@ def test_speed():
 
 
 
+
         speed = (
+
 
             total /
 
@@ -252,6 +280,7 @@ def test_speed():
 
             1024
 
+
         )
 
 
@@ -259,6 +288,20 @@ def test_speed():
         delay = int(
 
             cost * 1000
+
+        )
+
+
+
+
+
+        print(
+
+            "下载大小:",
+
+            round(total / 1024 / 1024,2),
+
+            "MB"
 
         )
 
@@ -282,6 +325,8 @@ def test_speed():
 
 
 
+
+
         return {
 
 
@@ -290,13 +335,13 @@ def test_speed():
             round(speed,2),
 
 
+
             "delay":
 
             delay
 
 
         }
-
 
 
 
@@ -313,7 +358,6 @@ def test_speed():
         )
 
 
-
     return None
 
 
@@ -321,7 +365,7 @@ def test_speed():
 
 
 # =========================
-# 停止 Xray
+# 停止Xray
 # =========================
 
 def stop_xray(process):
@@ -338,6 +382,7 @@ def stop_xray(process):
 
 
         process.terminate()
+
 
 
         process.wait(
@@ -357,8 +402,7 @@ def stop_xray(process):
             process.kill()
 
 
-
-        except:
+        except Exception:
 
 
             pass
