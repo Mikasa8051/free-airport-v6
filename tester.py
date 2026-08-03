@@ -9,33 +9,47 @@ LOCAL_PORT = 2080
 
 
 
+
+
 # =========================
 # 检查代理端口
 # =========================
 
 def check_proxy_port():
 
+
     try:
+
 
         s = socket.socket()
 
         s.settimeout(3)
 
+
         s.connect(
+
             (
                 LOCAL_HOST,
+
                 LOCAL_PORT
+
             )
+
         )
 
+
         s.close()
+
 
         return True
 
 
+
     except Exception:
 
+
         return False
+
 
 
 
@@ -48,13 +62,18 @@ def check_proxy_port():
 def check_alive(proxies):
 
 
-    url = "https://www.gstatic.com/generate_204"
+    url = (
+
+        "https://www.gstatic.com/generate_204"
+
+    )
 
 
     try:
 
 
         start = time.time()
+
 
 
         r = requests.get(
@@ -68,6 +87,7 @@ def check_alive(proxies):
         )
 
 
+
         delay = int(
 
             (time.time()-start)*1000
@@ -75,14 +95,34 @@ def check_alive(proxies):
         )
 
 
+
+        print(
+
+            "204状态:",
+
+            r.status_code,
+
+            "延迟:",
+
+            delay,
+
+            "ms"
+
+        )
+
+
+
         if r.status_code == 204:
 
 
             return {
 
+
                 "alive": True,
 
+
                 "delay": delay
+
 
             }
 
@@ -93,20 +133,25 @@ def check_alive(proxies):
 
         print(
 
-            "204测试失败:",
+            "204失败:",
 
             repr(e)
 
         )
 
 
+
     return {
 
+
         "alive": False,
+
 
         "delay":9999
 
     }
+
+
 
 
 
@@ -119,10 +164,12 @@ def check_alive(proxies):
 def download_speed(proxies):
 
 
+
     urls = [
 
 
         (
+
             "cloudflare",
 
             "https://speed.cloudflare.com/__down?bytes=10000000"
@@ -132,6 +179,7 @@ def download_speed(proxies):
 
 
         (
+
             "tele2",
 
             "http://speedtest.tele2.net/10MB.zip"
@@ -141,19 +189,38 @@ def download_speed(proxies):
 
 
         (
+
             "cachefly",
 
             "http://cachefly.cachefly.net/10mb.test"
 
         )
 
+    ]
+
+
+
+
+
+    bad_types = [
+
+
+        "text/html",
+
+
+        "text/plain"
 
     ]
 
 
 
+
+
     for name,url in urls:
 
+
+
+        print()
 
         print(
 
@@ -164,27 +231,38 @@ def download_speed(proxies):
         )
 
 
+
         try:
 
 
-            start = time.time()
+
+            start=time.time()
 
 
-            total = 0
+
+            total=0
+
+
 
 
 
             with requests.get(
 
+
                 url,
+
 
                 proxies=proxies,
 
+
                 stream=True,
+
 
                 timeout=(10,60)
 
+
             ) as r:
+
 
 
 
@@ -197,9 +275,10 @@ def download_speed(proxies):
                 )
 
 
+
                 print(
 
-                    "类型:",
+                    "响应类型:",
 
                     content_type
 
@@ -207,14 +286,21 @@ def download_speed(proxies):
 
 
 
-                # 防止HTML假测速
 
-                if "text/html" in content_type:
+
+                if any(
+
+                    x in content_type
+
+                    for x in bad_types
+
+                ):
+
 
 
                     print(
 
-                        "跳过HTML响应"
+                        "非测速文件，跳过"
 
                     )
 
@@ -225,11 +311,15 @@ def download_speed(proxies):
 
 
 
+
                 for chunk in r.iter_content(
+
 
                     chunk_size=16384
 
+
                 ):
+
 
 
                     if chunk:
@@ -239,9 +329,24 @@ def download_speed(proxies):
 
 
 
-                        # 测试1MB即可
+                        print(
+
+                            "收到:",
+
+                            len(chunk),
+
+                            "bytes",
+
+                            "累计:",
+
+                            total
+
+                        )
+
+
 
                         if total >= 1024*1024:
+
 
                             break
 
@@ -251,6 +356,32 @@ def download_speed(proxies):
 
 
             cost = time.time()-start
+
+
+
+            print(
+
+                "耗时:",
+
+                round(cost,2),
+
+                "秒"
+
+            )
+
+
+
+            print(
+
+                "总数据:",
+
+                total,
+
+                "bytes"
+
+            )
+
+
 
 
 
@@ -269,6 +400,7 @@ def download_speed(proxies):
 
 
 
+
             speed = (
 
                 total /
@@ -283,17 +415,59 @@ def download_speed(proxies):
 
 
 
+
+            speed = round(
+
+                speed,
+
+                2
+
+            )
+
+
+
+
+
+            print(
+
+                "速度:",
+
+                speed,
+
+                "MB/s"
+
+            )
+
+
+
+
+
+            # 过滤异常速度
+
+            if speed < 0.05:
+
+
+                print(
+
+                    "速度过低"
+
+                )
+
+
+                continue
+
+
+
+
+
+
             return {
 
 
-                "speed":
-
-                round(speed,2),
+                "speed":speed,
 
 
-                "source":
-
-                name
+                "source":name
 
 
             }
@@ -305,15 +479,18 @@ def download_speed(proxies):
         except Exception as e:
 
 
+
             print(
 
                 name,
 
-                "失败:",
+                "测速失败:",
 
                 repr(e)
 
             )
+
+
 
 
 
@@ -322,9 +499,12 @@ def download_speed(proxies):
 
         "speed":0,
 
+
         "source":"none"
 
     }
+
+
 
 
 
@@ -337,14 +517,18 @@ def download_speed(proxies):
 def test_proxy():
 
 
+
     result = {
 
 
         "alive":False,
 
+
         "delay":9999,
 
+
         "speed":0,
+
 
         "source":"none"
 
@@ -352,7 +536,10 @@ def test_proxy():
 
 
 
+
+
     if not check_proxy_port():
+
 
 
         print(
@@ -367,12 +554,14 @@ def test_proxy():
 
 
 
+
     proxies = {
 
 
         "http":
 
         f"socks5h://{LOCAL_HOST}:{LOCAL_PORT}",
+
 
 
         "https":
@@ -385,11 +574,13 @@ def test_proxy():
 
 
 
+
     alive = check_alive(
 
         proxies
 
     )
+
 
 
     result.update(
@@ -400,10 +591,14 @@ def test_proxy():
 
 
 
+
+
+
     if not result["alive"]:
 
 
         return result
+
 
 
 
@@ -426,32 +621,3 @@ def test_proxy():
 
 
     return result
-
-
-
-
-
-# =========================
-# 单独测试
-# =========================
-
-if __name__ == "__main__":
-
-
-    print(
-
-        "开始代理测试"
-
-    )
-
-
-    r = test_proxy()
-
-
-    print(
-
-        "测试结果:",
-
-        r
-
-    )
