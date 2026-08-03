@@ -1,14 +1,14 @@
 import requests
-import time
+import base64
 import json
+import time
 import html
 import re
 
 
-# =========================
+# ==================================================
 # 订阅源
-# =========================
-
+# ==================================================
 
 SOURCES = [
 
@@ -21,162 +21,23 @@ SOURCES = [
 ]
 
 
+# ==================================================
+# 请求配置
+# ==================================================
 
-# =========================
-# 下载订阅
-# =========================
+HEADERS = {
 
+    "User-Agent":
+    "Mozilla/5.0"
 
-def fetch(url):
+}
 
 
-    try:
+# ==================================================
+# 垃圾关键词
+# ==================================================
 
-        print(
-            "\n读取源:",
-            url
-        )
-
-
-        r=requests.get(
-
-            url,
-
-            timeout=15,
-
-            headers={
-
-                "User-Agent":
-                "Mozilla/5.0"
-
-            }
-
-        )
-
-
-        if r.status_code!=200:
-
-
-            print(
-                "失败:",
-                r.status_code
-            )
-
-            return ""
-
-
-
-        return r.text
-
-
-
-    except Exception as e:
-
-
-        print(
-            "读取失败:",
-            e
-        )
-
-        return ""
-
-
-
-
-
-# =========================
-# 提取节点
-# =========================
-
-
-def extract_nodes(data):
-
-
-    nodes=[]
-
-
-    for line in data.splitlines():
-
-
-        line=html.unescape(
-
-            line.strip()
-
-        )
-
-
-        if (
-
-            line.startswith(
-
-                (
-
-                "vmess://",
-
-                "vless://",
-
-                "trojan://",
-
-                "ss://"
-
-                )
-
-            )
-
-        ):
-
-            nodes.append(line)
-
-
-
-    return nodes
-
-
-
-
-
-# =========================
-# 去重
-# =========================
-
-
-def remove_duplicate(nodes):
-
-
-    result=[]
-
-    seen=set()
-
-
-
-    for n in nodes:
-
-
-        key=n.split("#")[0]
-
-
-        if key not in seen:
-
-
-            seen.add(key)
-
-            result.append(n)
-
-
-
-    return result
-
-
-
-
-
-
-# =========================
-# 基础过滤
-# =========================
-
-
-BLOCK_WORDS=[
+BLOCK_WORDS = [
 
     "127.0.0.",
 
@@ -186,14 +47,15 @@ BLOCK_WORDS=[
 
     "example.com",
 
+    "example.org",
+
+    "test.com",
+
     "invalid",
 
     "null",
 
     "none",
-
-
-    "banv2ray",
 
     "expired",
 
@@ -205,42 +67,319 @@ BLOCK_WORDS=[
 
     "poki",
 
-    "test"
+    "banv2ray"
 
 ]
 
 
-    # 本地
 
-    "127.0.0.",
+# ==================================================
+# 下载订阅
+# ==================================================
 
-    "localhost",
+def fetch(url):
 
-    "0.0.0.0",
+    try:
 
+        print("\n读取源:")
 
-    # 测试域名
-
-    "example.com",
-
-    "example.org",
-
-    "test.com",
+        print(url)
 
 
-    # 无效地址
+        r = requests.get(
 
-    "invalid",
+            url,
 
-    "null",
+            headers=HEADERS,
 
-    "none"
+            timeout=20
 
-]
+        )
 
 
+        if r.status_code != 200:
+
+            print(
+                "HTTP错误:",
+                r.status_code
+            )
+
+            return ""
+
+
+        return r.text
+
+
+
+    except Exception as e:
+
+
+        print(
+            "下载失败:",
+            e
+        )
+
+        return ""
+
+
+
+
+
+# ==================================================
+# Base64解码
+# ==================================================
+
+def decode_base64(data):
+
+
+    try:
+
+        clean = data.strip()
+
+
+        if not clean:
+
+            return ""
+
+
+        padding = len(clean) % 4
+
+
+        if padding:
+
+            clean += "=" * (4-padding)
+
+
+        result = base64.b64decode(
+
+            clean
+
+        ).decode(
+
+            "utf-8",
+
+            errors="ignore"
+
+        )
+
+
+        return result
+
+
+
+    except Exception:
+
+
+        return ""
+
+
+
+
+
+# ==================================================
+# 提取节点
+# ==================================================
+
+def extract_nodes(data):
+
+
+    nodes=[]
+
+
+    data = html.unescape(
+
+        data
+
+    )
+
+
+    # 原文本直接扫描
+
+    lines=data.splitlines()
+
+
+
+    for line in lines:
+
+
+        line=line.strip()
+
+
+        if not line:
+
+            continue
+
+
+
+        if line.startswith(
+
+            (
+
+                "vmess://",
+
+                "vless://",
+
+                "trojan://",
+
+                "ss://"
+
+            )
+
+        ):
+
+
+            nodes.append(line)
+
+
+
+
+    # 尝试base64
+
+
+    decoded = decode_base64(data)
+
+
+
+    if decoded:
+
+
+        for line in decoded.splitlines():
+
+
+            line=line.strip()
+
+
+            if line.startswith(
+
+                (
+
+                    "vmess://",
+
+                    "vless://",
+
+                    "trojan://",
+
+                    "ss://"
+
+                )
+
+            ):
+
+
+                nodes.append(line)
+
+
+
+    return nodes
+
+
+# ==================================================
+# 节点标准化
+# ==================================================
+
+def normalize_node(node):
+
+    try:
+
+        node = html.unescape(node)
+
+        node = node.strip()
+
+        node = node.replace(
+
+            "\r",
+
+            ""
+
+        )
+
+
+        return node
+
+
+    except Exception:
+
+
+        return ""
+
+
+
+
+
+# ==================================================
+# 核心去重
+# ==================================================
+
+def node_key(node):
+
+
+    try:
+
+        # 去除备注
+
+        base = node.split("#")[0]
+
+
+        # 去除空格
+
+        base = base.strip()
+
+
+        return base
+
+
+
+    except Exception:
+
+
+        return node
+
+
+
+
+
+def remove_duplicate(nodes):
+
+
+    result=[]
+
+    seen=set()
+
+
+
+    for node in nodes:
+
+
+        key=node_key(node)
+
+
+
+        if key not in seen:
+
+
+            seen.add(key)
+
+            result.append(node)
+
+
+
+    return result
+
+
+
+
+
+# ==================================================
+# 节点有效性检查
+# ==================================================
 
 def valid_node(node):
+
+
+    if not node:
+
+        return False
+
 
 
     text=node.lower()
@@ -249,33 +388,37 @@ def valid_node(node):
 
     # 黑名单
 
-    for b in BLOCK_WORDS:
+    for word in BLOCK_WORDS:
 
 
-        if b in text:
+        if word in text:
 
             return False
 
 
 
-    # 必须有端口
 
-    if not re.search(
+    # 长度过滤
 
-        r":[0-9]{2,5}",
 
-        text
-
-    ):
+    if len(node)<50:
 
         return False
 
 
 
-    # 过滤明显假节点
+
+    # 必须包含端口
 
 
-    if len(node)<50:
+    if not re.search(
+
+        r":[0-9]{2,5}",
+
+        node
+
+    ):
+
 
         return False
 
@@ -287,32 +430,51 @@ def valid_node(node):
 
 
 
-# =========================
+# ==================================================
 # 协议识别
-# =========================
-
+# ==================================================
 
 def detect_protocol(node):
 
 
-    if node.startswith("vless://"):
+    if node.startswith(
+
+        "vless://"
+
+    ):
 
         return "vless"
 
 
-    if node.startswith("trojan://"):
+
+    if node.startswith(
+
+        "trojan://"
+
+    ):
 
         return "trojan"
 
 
-    if node.startswith("ss://"):
+
+    if node.startswith(
+
+        "vmess://"
+
+    ):
+
+        return "vmess"
+
+
+
+    if node.startswith(
+
+        "ss://"
+
+    ):
 
         return "ss"
 
-
-    if node.startswith("vmess://"):
-
-        return "vmess"
 
 
     return "unknown"
@@ -321,12 +483,9 @@ def detect_protocol(node):
 
 
 
-
-
-# =========================
+# ==================================================
 # 地区识别
-# =========================
-
+# ==================================================
 
 def detect_region(node):
 
@@ -335,16 +494,16 @@ def detect_region(node):
 
 
 
-    region_map={
+    region={
 
 
         "HK":[
 
             "hk",
 
-            "hong",
+            "hongkong",
 
-            "hongkong"
+            "hong"
 
         ],
 
@@ -391,27 +550,7 @@ def detect_region(node):
 
             "us",
 
-            "usa",
-
-            "america"
-
-        ],
-
-
-        "DE":[
-
-            "de",
-
-            "germany"
-
-        ],
-
-
-        "NL":[
-
-            "nl",
-
-            "netherlands"
+            "usa"
 
         ]
 
@@ -419,16 +558,15 @@ def detect_region(node):
 
 
 
-    for r,keys in region_map.items():
+    for country,keys in region.items():
 
 
-        for k in keys:
+        for key in keys:
 
 
-            if k in text:
+            if key in text:
 
-
-                return r
+                return country
 
 
 
@@ -438,12 +576,9 @@ def detect_region(node):
 
 
 
-
-
-# =========================
+# ==================================================
 # 节点评分
-# =========================
-
+# ==================================================
 
 def quality_score(node):
 
@@ -451,15 +586,15 @@ def quality_score(node):
     score=0
 
 
-    protocol=detect_protocol(node)
 
+    protocol=detect_protocol(node)
 
 
     text=node.lower()
 
 
 
-    # 协议
+    # 协议权重
 
 
     if protocol=="vless":
@@ -478,6 +613,7 @@ def quality_score(node):
 
 
         else:
+
 
             score+=60
 
@@ -508,7 +644,8 @@ def quality_score(node):
 
 
 
-    # 地区
+
+    # 地区加权
 
 
     region_weight={
@@ -526,17 +663,13 @@ def quality_score(node):
 
         "US":10,
 
-        "DE":5,
-
-        "NL":5,
-
         "OTHER":0
 
     }
 
 
 
-    score+=region_weight.get(
+    score += region_weight.get(
 
         detect_region(node),
 
@@ -546,16 +679,36 @@ def quality_score(node):
 
 
 
+    # 特征加分
+
+
+    if "cloudflare" in text:
+
+        score+=5
+
+
+
+    if "vision" in text:
+
+        score+=10
+
+
+
+    if "grpc" in text:
+
+        score+=5
+
+
+
     return score
 
 
 
 
 
-# =========================
-# 统计
-# =========================
-
+# ==================================================
+# 协议统计
+# ==================================================
 
 def statistics(nodes):
 
@@ -563,10 +716,11 @@ def statistics(nodes):
     result={}
 
 
-    for n in nodes:
+
+    for node in nodes:
 
 
-        p=detect_protocol(n)
+        p=detect_protocol(node)
 
 
         result[p]=result.get(
@@ -583,12 +737,195 @@ def statistics(nodes):
 
 
 
+# ==================================================
+# 协议数量平衡
+# ==================================================
+
+def balance_protocol(nodes):
 
 
-# =========================
-# 主采集
-# =========================
+    vless=[]
 
+    trojan=[]
+
+    vmess=[]
+
+    ss=[]
+
+
+
+    for node in nodes:
+
+
+        p=detect_protocol(node)
+
+
+        if p=="vless":
+
+            vless.append(node)
+
+
+        elif p=="trojan":
+
+            trojan.append(node)
+
+
+        elif p=="vmess":
+
+            vmess.append(node)
+
+
+        elif p=="ss":
+
+            ss.append(node)
+
+
+
+
+    # 保证NekoBox体验
+
+    result=(
+
+        vless[:300]
+
+        +
+
+        trojan[:100]
+
+        +
+
+        ss[:150]
+
+        +
+
+        vmess[:100]
+
+    )
+
+
+
+    return result
+
+
+
+
+
+# ==================================================
+# 保存节点文件
+# ==================================================
+
+def save_nodes(nodes):
+
+
+    with open(
+
+        "nodes.txt",
+
+        "w",
+
+        encoding="utf-8"
+
+    ) as f:
+
+
+        for node in nodes:
+
+
+            f.write(
+
+                node+"\n"
+
+            )
+
+
+
+    print(
+
+        "节点已保存: nodes.txt"
+
+    )
+
+
+
+
+
+# ==================================================
+# 保存评分文件
+# ==================================================
+
+def save_score(nodes):
+
+
+    data=[]
+
+
+
+    for node in nodes:
+
+
+        data.append({
+
+            "node":
+
+            node,
+
+
+            "protocol":
+
+            detect_protocol(node),
+
+
+            "region":
+
+            detect_region(node),
+
+
+            "score":
+
+            quality_score(node)
+
+        })
+
+
+
+    with open(
+
+        "nodes_score.json",
+
+        "w",
+
+        encoding="utf-8"
+
+    ) as f:
+
+
+        json.dump(
+
+            data,
+
+            f,
+
+            ensure_ascii=False,
+
+            indent=2
+
+        )
+
+
+
+    print(
+
+        "评分文件生成: nodes_score.json"
+
+    )
+
+
+
+
+
+# ==================================================
+# 主采集流程
+# ==================================================
 
 def collect_nodes():
 
@@ -607,10 +944,10 @@ def collect_nodes():
 
 
 
-    for s in SOURCES:
+    for source in SOURCES:
 
 
-        data=fetch(s)
+        data=fetch(source)
 
 
 
@@ -620,7 +957,8 @@ def collect_nodes():
 
 
 
-        temp=extract_nodes(data)
+
+        found=extract_nodes(data)
 
 
 
@@ -628,18 +966,17 @@ def collect_nodes():
 
             "发现节点:",
 
-            len(temp)
+            len(found)
 
         )
 
 
 
-        nodes.extend(temp)
+        nodes.extend(found)
 
 
 
         time.sleep(1)
-
 
 
 
@@ -652,6 +989,22 @@ def collect_nodes():
 
     )
 
+
+
+    # 标准化
+
+    nodes=[
+
+        normalize_node(n)
+
+        for n in nodes
+
+    ]
+
+
+
+
+    # 去重
 
 
     nodes=remove_duplicate(nodes)
@@ -669,13 +1022,16 @@ def collect_nodes():
 
 
 
+
     before=len(nodes)
 
 
 
     nodes=[
 
-        n for n in nodes
+        n
+
+        for n in nodes
 
         if valid_node(n)
 
@@ -705,96 +1061,17 @@ def collect_nodes():
 
 
 
-
-    # 排序
+    # 评分排序
 
 
     nodes.sort(
 
-        key=lambda x:
-
-        quality_score(x),
+        key=quality_score,
 
         reverse=True
 
     )
 
-
-    
-# =========================
-# 协议数量平衡
-# =========================
-
-
-vless=[]
-
-trojan=[]
-
-ss=[]
-
-vmess=[]
-
-
-for n in nodes:
-
-
-    p=detect_protocol(n)
-
-
-    if p=="vless":
-
-        vless.append(n)
-
-
-    elif p=="trojan":
-
-        trojan.append(n)
-
-
-    elif p=="ss":
-
-        ss.append(n)
-
-
-    elif p=="vmess":
-
-        vmess.append(n)
-
-
-
-
-nodes=(
-
-    vless[:200]
-
-    +
-
-    trojan[:100]
-
-    +
-
-    ss[:100]
-
-    +
-
-    vmess[:50]
-
-)
-
-
-
-
-
-nodes.sort(
-
-    key=lambda x:
-
-    quality_score(x),
-
-    reverse=True
-
-)
-    
 
 
     print(
@@ -806,105 +1083,29 @@ nodes.sort(
 
 
 
-
-    # 保存评分数据库
-
-
-    score_data=[]
+    # 协议平衡
 
 
-
-    for n in nodes:
-
-
-        score_data.append({
-
-
-            "node":n,
-
-            "protocol":
-            detect_protocol(n),
-
-            "region":
-            detect_region(n),
-
-            "score":
-            quality_score(n)
-
-
-        })
+    nodes=balance_protocol(nodes)
 
 
 
+    nodes.sort(
 
-    with open(
+        key=quality_score,
 
-        "nodes_score.json",
-
-        "w",
-
-        encoding="utf-8"
-
-    ) as f:
-
-
-        json.dump(
-
-            score_data,
-
-            f,
-
-            ensure_ascii=False,
-
-            indent=2
-
-        )
-
-
-
-
-    print(
-
-        "评分文件生成: nodes_score.json"
+        reverse=True
 
     )
 
 
 
 
-
-    # 保存排序节点
-
-
-    with open(
-
-        "nodes.txt",
-
-        "w",
-
-        encoding="utf-8"
-
-    ) as f:
+    save_score(nodes)
 
 
 
-        for n in nodes:
-
-
-            f.write(
-
-                n+"\n"
-
-            )
-
-
-
-
-    print(
-
-        "节点已保存: nodes.txt"
-
-    )
+    save_nodes(nodes)
 
 
 
@@ -917,6 +1118,7 @@ nodes.sort(
 
 
     stat=statistics(nodes)
+
 
 
     for k,v in stat.items():
@@ -933,6 +1135,7 @@ nodes.sort(
         )
 
 
+
     print(
 
         "===================="
@@ -947,7 +1150,9 @@ nodes.sort(
 
 
 
-
+# ==================================================
+# 程序入口
+# ==================================================
 
 if __name__=="__main__":
 
@@ -964,13 +1169,13 @@ if __name__=="__main__":
 
 
 
-    for n in nodes[:10]:
+    for node in nodes[:10]:
 
 
         print(
 
-            quality_score(n),
+            quality_score(node),
 
-            n[:120]
+            node[:120]
 
         )
