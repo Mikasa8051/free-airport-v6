@@ -1,11 +1,13 @@
-import time
 import requests
-import base64
+import time
 import json
+import html
 import re
-import hashlib
-from urllib.parse import urlparse, parse_qs
 
+
+# =========================
+# 订阅源
+# =========================
 
 
 SOURCES = [
@@ -15,29 +17,6 @@ SOURCES = [
     "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/main/V2Ray-Config-By-EbraSha.txt",
 
     "https://raw.githubusercontent.com/zhuhaiuk/free-nodes/main/nodes.txt"
-
-]
-
-
-
-# IPv6开关
-
-ALLOW_IPV6 = False
-
-
-
-# 黑名单
-
-
-BLOCK_HOSTS=[
-
-    "localhost",
-
-    "example.com",
-
-    "127.0.0.1",
-
-    "0.0.0.0",
 
 ]
 
@@ -53,11 +32,8 @@ def fetch(url):
 
     try:
 
-
-        print()
-
         print(
-            "读取源:",
+            "\n读取源:",
             url
         )
 
@@ -78,9 +54,19 @@ def fetch(url):
         )
 
 
-        if r.status_code==200:
+        if r.status_code!=200:
 
-            return r.text
+
+            print(
+                "失败:",
+                r.status_code
+            )
+
+            return ""
+
+
+
+        return r.text
 
 
 
@@ -92,9 +78,7 @@ def fetch(url):
             e
         )
 
-
-
-    return None
+        return ""
 
 
 
@@ -114,63 +98,38 @@ def extract_nodes(data):
     for line in data.splitlines():
 
 
-        line=line.strip()
+        line=html.unescape(
 
+            line.strip()
+
+        )
 
 
         if (
 
-            line.startswith("vmess://")
+            line.startswith(
 
-            or
+                (
 
-            line.startswith("vless://")
+                "vmess://",
 
-            or
+                "vless://",
 
-            line.startswith("trojan://")
+                "trojan://",
 
-            or
+                "ss://"
 
-            line.startswith("ss://")
+                )
+
+            )
 
         ):
-
 
             nodes.append(line)
 
 
 
     return nodes
-
-
-
-
-
-# =========================
-# 核心指纹
-# =========================
-
-
-def node_key(node):
-
-    """
-    去除备注后的核心
-    """
-
-    try:
-
-        if "#" in node:
-
-            node=node.split("#")[0]
-
-
-        return node
-
-
-    except:
-
-        return node
 
 
 
@@ -186,18 +145,20 @@ def remove_duplicate(nodes):
 
     result=[]
 
-    cache=set()
+    seen=set()
+
 
 
     for n in nodes:
 
 
-        key=node_key(n)
+        key=n.split("#")[0]
 
 
-        if key not in cache:
+        if key not in seen:
 
-            cache.add(key)
+
+            seen.add(key)
 
             result.append(n)
 
@@ -209,391 +170,85 @@ def remove_duplicate(nodes):
 
 
 
-# =========================
-# 获取地址
-# =========================
-
-
-def get_host(node):
-
-
-    try:
-
-        if node.startswith(
-            "vmess://"
-        ):
-
-            return ""
-
-
-        u=urlparse(node)
-
-
-        return u.hostname or ""
-
-
-    except:
-
-
-        return ""
-
-
-
-
 
 # =========================
-# IPv6判断
+# 基础过滤
 # =========================
 
 
-def is_ipv6(host):
+BLOCK_WORDS=[
 
 
-    return ":" in host
+    "127.0.0.1",
 
+    "localhost",
 
+    "example.com"
 
+]
 
 
-# =========================
-# 私网过滤
-# =========================
-
-
-def private_ip(host):
-
-
-    private=[
-
-        "127.",
-
-        "10.",
-
-        "192.168.",
-
-        "0.0.0.0"
-
-    ]
-
-
-    for p in private:
-
-
-        if host.startswith(p):
-
-            return True
-
-
-
-    return False
-
-
-# =========================
-# 黑名单检查
-# =========================
-
-def blocked_host(host):
-
-
-    if not host:
-
-        return False
-
-
-
-    host=host.lower()
-
-
-
-    for b in BLOCK_HOSTS:
-
-
-        if b in host:
-
-            return True
-
-
-
-    return False
-
-
-
-
-
-# =========================
-# VMess基础检查
-# =========================
-
-def check_vmess(node):
-
-
-    try:
-
-
-        data=node.replace(
-            "vmess://",
-            ""
-        )
-
-
-        raw=base64.b64decode(
-            data + "=="
-        )
-
-
-        info=json.loads(
-            raw.decode(
-                "utf-8",
-                errors="ignore"
-            )
-        )
-
-
-        addr=info.get(
-            "add",
-            ""
-        )
-
-
-        port=str(
-            info.get(
-                "port",
-                ""
-            )
-        )
-
-
-        uid=info.get(
-            "id",
-            ""
-        )
-
-
-
-        if not addr:
-
-            return False
-
-
-
-        if not port:
-
-            return False
-
-
-
-        for bad in BAD_UUID:
-
-
-            if bad in uid:
-
-                return False
-
-
-
-        if addr.startswith(
-            "127."
-        ):
-
-            return False
-
-
-
-        return True
-
-
-
-    except Exception:
-
-
-        return False
-
-
-
-
-
-# =========================
-# VLESS/Trojan/SS检查
-# =========================
-
-def check_url_node(node):
-
-
-    try:
-
-
-        host=get_host(
-            node
-        )
-
-
-        if not host:
-
-            return False
-
-
-
-        if private_ip(host):
-
-            return False
-
-
-
-        if blocked_host(host):
-
-            return False
-
-
-
-        if (
-
-            is_ipv6(host)
-
-            and
-
-            not ALLOW_IPV6
-
-        ):
-
-            return False
-
-
-
-        return True
-
-
-
-    except:
-
-
-        return False
-
-
-
-
-
-# =========================
-# 综合过滤
-# =========================
 
 def valid_node(node):
 
 
-    if len(node)<30:
-
-        return False
+    text=node.lower()
 
 
+    for b in BLOCK_WORDS:
 
-    if node.startswith(
-        "vmess://"
-    ):
 
-        return check_vmess(
-            node
-        )
+        if b in text:
+
+            return False
 
 
 
-    else:
-
-
-        return check_url_node(
-            node
-        )
+    return True
 
 
 
 
 
 # =========================
-# 节点评分
-# =========================
-
-def protocol_score(node):
-
-
-    score=0
-
-
-
-    if node.startswith(
-        "vless://"
-    ):
-
-        score+=40
-
-
-
-    elif node.startswith(
-        "trojan://"
-    ):
-
-        score+=30
-
-
-
-    elif node.startswith(
-        "ss://"
-    ):
-
-        score+=20
-
-
-
-    elif node.startswith(
-        "vmess://"
-    ):
-
-        score+=10
-
-
-
-    host=get_host(node)
-
-
-
-    if host:
-
-
-        if not is_ipv6(host):
-
-            score+=10
-
-
-
-    return score
-
-
-
-
-
-# =========================
-# 统计
-# =========================
-
-
-# =========================
-# 节点评分
+# 协议识别
 # =========================
 
 
 def detect_protocol(node):
 
+
     if node.startswith("vless://"):
+
         return "vless"
 
+
     if node.startswith("trojan://"):
+
         return "trojan"
 
+
     if node.startswith("ss://"):
+
         return "ss"
 
+
     if node.startswith("vmess://"):
+
         return "vmess"
+
 
     return "unknown"
 
+
+
+
+
+
+
+# =========================
+# 地区识别
+# =========================
 
 
 def detect_region(node):
@@ -602,53 +257,85 @@ def detect_region(node):
     text=node.lower()
 
 
-    region="OTHER"
-
 
     region_map={
 
-        "hk":
-        [
-            "hong",
+
+        "HK":[
+
             "hk",
+
+            "hong",
+
             "hongkong"
+
         ],
 
 
-        "jp":
-        [
-            "japan",
+        "JP":[
+
             "jp",
+
+            "japan",
+
             "tokyo"
+
         ],
 
 
-        "sg":
-        [
-            "singapore",
-            "sg"
+        "SG":[
+
+            "sg",
+
+            "singapore"
+
         ],
 
 
-        "tw":
-        [
-            "taiwan",
-            "tw"
+        "TW":[
+
+            "tw",
+
+            "taiwan"
+
         ],
 
 
-        "kr":
-        [
-            "korea",
-            "kr"
+        "KR":[
+
+            "kr",
+
+            "korea"
+
         ],
 
 
-        "us":
-        [
+        "US":[
+
             "us",
-            "america",
-            "usa"
+
+            "usa",
+
+            "america"
+
+        ],
+
+
+        "DE":[
+
+            "de",
+
+            "germany"
+
+        ],
+
+
+        "NL":[
+
+            "nl",
+
+            "netherlands"
+
         ]
 
     }
@@ -663,14 +350,22 @@ def detect_region(node):
 
             if k in text:
 
+
                 return r
 
 
 
-    return region
+    return "OTHER"
 
 
 
+
+
+
+
+# =========================
+# 节点评分
+# =========================
 
 
 def quality_score(node):
@@ -683,18 +378,27 @@ def quality_score(node):
 
 
 
-    # 协议评分
+    text=node.lower()
+
+
+
+    # 协议
+
 
     if protocol=="vless":
 
 
-        if "reality" in node.lower():
+        if "reality" in text:
+
 
             score+=100
 
-        elif "security=tls" in node.lower():
+
+        elif "security=tls" in text:
+
 
             score+=75
+
 
         else:
 
@@ -702,45 +406,52 @@ def quality_score(node):
 
 
 
+
     elif protocol=="trojan":
+
 
         score+=85
 
 
 
+
     elif protocol=="ss":
+
 
         score+=50
 
 
 
+
     elif protocol=="vmess":
+
 
         score+=30
 
 
 
-    # 地区评分
 
-
-    region=detect_region(node)
-
+    # 地区
 
 
     region_weight={
 
 
-        "hk":30,
+        "HK":30,
 
-        "jp":25,
+        "JP":25,
 
-        "sg":20,
+        "SG":20,
 
-        "tw":20,
+        "TW":20,
 
-        "kr":15,
+        "KR":15,
 
-        "us":10,
+        "US":10,
+
+        "DE":5,
+
+        "NL":5,
 
         "OTHER":0
 
@@ -750,90 +461,80 @@ def quality_score(node):
 
     score+=region_weight.get(
 
-        region,
+        detect_region(node),
 
         0
 
     )
 
 
+
     return score
+
+
+
+
+
+# =========================
+# 统计
+# =========================
+
 
 def statistics(nodes):
 
 
-    stat={
-
-        "vmess":0,
-
-        "vless":0,
-
-        "trojan":0,
-
-        "ss":0
-
-    }
-
+    result={}
 
 
     for n in nodes:
 
 
-        if n.startswith(
-            "vmess://"
-        ):
-
-            stat["vmess"]+=1
+        p=detect_protocol(n)
 
 
-        elif n.startswith(
-            "vless://"
-        ):
+        result[p]=result.get(
 
-            stat["vless"]+=1
+            p,
 
+            0
 
-        elif n.startswith(
-            "trojan://"
-        ):
-
-            stat["trojan"]+=1
-
-
-        elif n.startswith(
-            "ss://"
-        ):
-
-            stat["ss"]+=1
+        )+1
 
 
 
-    return stat
+    return result
+
+
 
 
 
 # =========================
-# 主采集流程
+# 主采集
 # =========================
+
 
 def collect_nodes():
-
-
-    print(
-        "订阅源数量:",
-        len(SOURCES)
-    )
 
 
     nodes=[]
 
 
+
+    print(
+
+        "订阅源数量:",
+
+        len(SOURCES)
+
+    )
+
+
+
     for s in SOURCES:
 
 
-        data=fetch(
-            s
-        )
+        data=fetch(s)
+
 
 
         if not data:
@@ -842,54 +543,58 @@ def collect_nodes():
 
 
 
-        temp=extract_nodes(
-            data
-        )
+        temp=extract_nodes(data)
+
 
 
         print(
+
             "发现节点:",
+
             len(temp)
+
         )
 
 
-        nodes.extend(
-            temp
-        )
+
+        nodes.extend(temp)
+
 
 
         time.sleep(1)
 
 
 
-    print()
+
 
     print(
-        "原始节点:",
+
+        "\n原始节点:",
+
         len(nodes)
+
     )
 
 
 
-    # 第一次去重
+    nodes=remove_duplicate(nodes)
 
-    nodes=remove_duplicate(
-        nodes
-    )
 
 
     print(
+
         "核心去重:",
+
         len(nodes)
+
     )
+
 
 
 
     before=len(nodes)
 
 
-
-    # 过滤
 
     nodes=[
 
@@ -902,72 +607,29 @@ def collect_nodes():
 
 
     print(
+
         "过滤掉:",
+
         before-len(nodes)
+
     )
 
 
 
     print(
+
         "有效节点:",
+
         len(nodes)
+
     )
+
+
+
 
 
 
     # 排序
-
-    nodes.sort(
-
-        key=protocol_score,
-
-        reverse=True
-
-    )
-
-
-
-    print()
-
-
-    print(
-        "======节点统计======"
-    )
-
-
-    stat=statistics(
-        nodes
-    )
-
-
-    for k,v in stat.items():
-
-        print(
-
-            k.upper(),
-
-            ":",
-
-            v
-
-        )
-
-
-    print(
-        "===================="
-    )
-
-
-
-    # 保存节点
-
-
-    
-
-
-    # =========================
-    # 节点质量排序
-    # =========================
 
 
     nodes.sort(
@@ -982,7 +644,86 @@ def collect_nodes():
 
 
 
-with open(
+    print(
+
+        "\n质量排序完成"
+
+    )
+
+
+
+
+
+    # 保存评分数据库
+
+
+    score_data=[]
+
+
+
+    for n in nodes:
+
+
+        score_data.append({
+
+
+            "node":n,
+
+            "protocol":
+            detect_protocol(n),
+
+            "region":
+            detect_region(n),
+
+            "score":
+            quality_score(n)
+
+
+        })
+
+
+
+
+    with open(
+
+        "nodes_score.json",
+
+        "w",
+
+        encoding="utf-8"
+
+    ) as f:
+
+
+        json.dump(
+
+            score_data,
+
+            f,
+
+            ensure_ascii=False,
+
+            indent=2
+
+        )
+
+
+
+
+    print(
+
+        "评分文件生成: nodes_score.json"
+
+    )
+
+
+
+
+
+    # 保存排序节点
+
+
+    with open(
 
         "nodes.txt",
 
@@ -993,37 +734,58 @@ with open(
     ) as f:
 
 
+
         for n in nodes:
 
+
             f.write(
+
                 n+"\n"
+
             )
 
 
 
-    print()
-
 
     print(
-        "节点已保存:",
-        "nodes.txt"
-    )
-    
-    
 
-    print(
-        "\n质量排序完成"
+        "节点已保存: nodes.txt"
+
     )
 
 
 
-    for n in nodes[:5]:
+
+    print(
+
+        "\n======节点统计======"
+
+    )
+
+
+    stat=statistics(nodes)
+
+
+    for k,v in stat.items():
+
 
         print(
-            "TOP:",
-            quality_score(n),
-            n[:100]
+
+            k.upper(),
+
+            ":",
+
+            v
+
         )
+
+
+    print(
+
+        "===================="
+
+    )
+
 
 
     return nodes
@@ -1032,9 +794,7 @@ with open(
 
 
 
-# =========================
-# 程序入口
-# =========================
+
 
 if __name__=="__main__":
 
@@ -1043,17 +803,21 @@ if __name__=="__main__":
 
 
 
-    print()
-
-
     print(
-        "前10节点:"
+
+        "\nTOP10节点"
+
     )
+
 
 
     for n in nodes[:10]:
 
 
         print(
+
+            quality_score(n),
+
             n[:120]
+
         )
