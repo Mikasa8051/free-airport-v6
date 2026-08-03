@@ -1,12 +1,13 @@
 import time
 import requests
-
-from validator import validate_nodes
-
+import base64
+import json
+import re
+from urllib.parse import urlparse
 
 
 # =========================
-# 订阅源
+# 配置
 # =========================
 
 SOURCES = [
@@ -20,16 +21,54 @@ SOURCES = [
 ]
 
 
+# 是否允许IPv6
+
+ALLOW_IPV6 = False
+
+
+
+# 黑名单域名
+
+BLOCK_HOSTS = [
+
+    "localhost",
+
+    "example.com",
+
+    "railway.app",
+
+    "workers.dev",
+
+    "pages.dev",
+
+    "herokuapp.com"
+
+]
+
+
+
+# 假UUID
+
+BAD_UUID = [
+
+    "00000000",
+
+    "11111111",
+
+    "88888888"
+
+]
+
+
 
 # =========================
-# 下载订阅
+# 获取订阅
 # =========================
+
 
 def fetch(url):
 
-
     try:
-
 
         print()
 
@@ -57,19 +96,15 @@ def fetch(url):
 
         if r.status_code == 200:
 
-
             return r.text
 
 
-
     except Exception as e:
-
 
         print(
             "读取失败:",
             e
         )
-
 
 
     return None
@@ -82,17 +117,15 @@ def fetch(url):
 # 提取节点
 # =========================
 
+
 def extract_nodes(data):
 
-
-    result=[]
+    nodes=[]
 
 
     for line in data.splitlines():
 
-
         line=line.strip()
-
 
 
         if (
@@ -121,10 +154,69 @@ def extract_nodes(data):
 
         ):
 
+            nodes.append(line)
 
-            result.append(
-                line
-            )
+
+
+    return nodes
+
+
+
+
+
+# =========================
+# 核心指纹
+# =========================
+
+
+def node_key(node):
+
+    """
+    去除备注后的核心
+    """
+
+    try:
+
+        if "#" in node:
+
+            node=node.split("#")[0]
+
+
+        return node
+
+
+    except:
+
+        return node
+
+
+
+
+
+# =========================
+# 去重
+# =========================
+
+
+def remove_duplicate(nodes):
+
+
+    result=[]
+
+    cache=set()
+
+
+    for n in nodes:
+
+
+        key=node_key(n)
+
+
+        if key not in cache:
+
+            cache.add(key)
+
+            result.append(n)
 
 
 
@@ -135,55 +227,359 @@ def extract_nodes(data):
 
 
 # =========================
-# 去重
+# 获取地址
 # =========================
 
-def remove_duplicate(nodes):
+
+def get_host(node):
 
 
-    return list(
-        set(nodes)
-    )
+    try:
+
+        if node.startswith(
+            "vmess://"
+        ):
+
+            return ""
+
+
+        u=urlparse(node)
+
+
+        return u.hostname or ""
+
+
+    except:
+
+
+        return ""
 
 
 
 
 
 # =========================
-# 基础过滤
+# IPv6判断
 # =========================
 
-def valid_node(node):
+
+def is_ipv6(host):
 
 
-    if len(node)<20:
+    return ":" in host
+
+
+
+
+
+# =========================
+# 私网过滤
+# =========================
+
+
+def private_ip(host):
+
+
+    private=[
+
+        "127.",
+
+        "10.",
+
+        "192.168.",
+
+        "0.0.0.0"
+
+    ]
+
+
+    for p in private:
+
+
+        if host.startswith(p):
+
+            return True
+
+
+
+    return False
+
+
+# =========================
+# 黑名单检查
+# =========================
+
+def blocked_host(host):
+
+
+    if not host:
 
         return False
 
 
 
-    bad=[
-
-        "127.0.0.1",
-
-        "localhost",
-
-        "example.com"
-
-    ]
+    host=host.lower()
 
 
-    for b in bad:
+
+    for b in BLOCK_HOSTS:
 
 
-        if b in node:
+        if b in host:
 
+            return True
+
+
+
+    return False
+
+
+
+
+
+# =========================
+# VMess基础检查
+# =========================
+
+def check_vmess(node):
+
+
+    try:
+
+
+        data=node.replace(
+            "vmess://",
+            ""
+        )
+
+
+        raw=base64.b64decode(
+            data + "=="
+        )
+
+
+        info=json.loads(
+            raw.decode(
+                "utf-8",
+                errors="ignore"
+            )
+        )
+
+
+        addr=info.get(
+            "add",
+            ""
+        )
+
+
+        port=str(
+            info.get(
+                "port",
+                ""
+            )
+        )
+
+
+        uid=info.get(
+            "id",
+            ""
+        )
+
+
+
+        if not addr:
 
             return False
 
 
 
-    return True
+        if not port:
+
+            return False
+
+
+
+        for bad in BAD_UUID:
+
+
+            if bad in uid:
+
+                return False
+
+
+
+        if addr.startswith(
+            "127."
+        ):
+
+            return False
+
+
+
+        return True
+
+
+
+    except Exception:
+
+
+        return False
+
+
+
+
+
+# =========================
+# VLESS/Trojan/SS检查
+# =========================
+
+def check_url_node(node):
+
+
+    try:
+
+
+        host=get_host(
+            node
+        )
+
+
+        if not host:
+
+            return False
+
+
+
+        if private_ip(host):
+
+            return False
+
+
+
+        if blocked_host(host):
+
+            return False
+
+
+
+        if (
+
+            is_ipv6(host)
+
+            and
+
+            not ALLOW_IPV6
+
+        ):
+
+            return False
+
+
+
+        return True
+
+
+
+    except:
+
+
+        return False
+
+
+
+
+
+# =========================
+# 综合过滤
+# =========================
+
+def valid_node(node):
+
+
+    if len(node)<30:
+
+        return False
+
+
+
+    if node.startswith(
+        "vmess://"
+    ):
+
+        return check_vmess(
+            node
+        )
+
+
+
+    else:
+
+
+        return check_url_node(
+            node
+        )
+
+
+
+
+
+# =========================
+# 节点评分
+# =========================
+
+def protocol_score(node):
+
+
+    score=0
+
+
+
+    if node.startswith(
+        "vless://"
+    ):
+
+        score+=40
+
+
+
+    elif node.startswith(
+        "trojan://"
+    ):
+
+        score+=30
+
+
+
+    elif node.startswith(
+        "ss://"
+    ):
+
+        score+=20
+
+
+
+    elif node.startswith(
+        "vmess://"
+    ):
+
+        score+=10
+
+
+
+    host=get_host(node)
+
+
+
+    if host:
+
+
+        if not is_ipv6(host):
+
+            score+=10
+
+
+
+    return score
 
 
 
@@ -213,231 +609,33 @@ def statistics(nodes):
     for n in nodes:
 
 
-        if n.startswith("vmess://"):
+        if n.startswith(
+            "vmess://"
+        ):
 
             stat["vmess"]+=1
 
 
-        elif n.startswith("vless://"):
+        elif n.startswith(
+            "vless://"
+        ):
 
             stat["vless"]+=1
 
 
-        elif n.startswith("trojan://"):
+        elif n.startswith(
+            "trojan://"
+        ):
 
             stat["trojan"]+=1
 
 
-        elif n.startswith("ss://"):
+        elif n.startswith(
+            "ss://"
+        ):
 
             stat["ss"]+=1
 
 
 
     return stat
-
-
-
-
-
-# =========================
-# 主采集
-# =========================
-
-def collect_nodes():
-
-
-    nodes=[]
-
-
-
-    print(
-        "订阅源数量:",
-        len(SOURCES)
-    )
-
-
-
-    for s in SOURCES:
-
-
-
-        data=fetch(
-            s
-        )
-
-
-        if not data:
-
-
-            continue
-
-
-
-        temp=extract_nodes(
-            data
-        )
-
-
-        print(
-            "发现节点:",
-            len(temp)
-        )
-
-
-        nodes.extend(
-            temp
-        )
-
-
-
-        time.sleep(1)
-
-
-
-
-    print(
-        "\n原始节点:",
-        len(nodes)
-    )
-
-
-
-
-    # =========================
-    # 第一次去重
-    # =========================
-
-    nodes=remove_duplicate(
-        nodes
-    )
-
-
-    print(
-        "去重后:",
-        len(nodes)
-    )
-
-
-
-
-
-    # =========================
-    # 基础过滤
-    # =========================
-
-    before=len(nodes)
-
-
-
-    nodes=[
-
-        n
-
-        for n in nodes
-
-        if valid_node(n)
-
-    ]
-
-
-
-    print(
-        "基础过滤掉:",
-        before-len(nodes)
-    )
-
-
-
-    print(
-        "基础有效:",
-        len(nodes)
-    )
-
-
-
-
-
-    # =========================
-    # validator二次质量过滤
-    # =========================
-
-    nodes=validate_nodes(
-        nodes
-    )
-
-
-
-    print(
-        "质量过滤后:",
-        len(nodes)
-    )
-
-
-
-
-
-    # =========================
-    # 节点统计
-    # =========================
-
-    print(
-        "\n======节点统计======"
-    )
-
-
-
-    stat=statistics(
-        nodes
-    )
-
-
-    for k,v in stat.items():
-
-
-        print(
-
-            k.upper(),
-
-            ":",
-
-            v
-
-        )
-
-
-
-    print(
-        "===================="
-    )
-
-
-
-    return nodes
-
-
-
-
-
-# =========================
-# 测试入口
-# =========================
-
-if __name__=="__main__":
-
-
-    nodes=collect_nodes()
-
-
-
-    print(
-        "\n前10节点:"
-    )
-
-
-    for n in nodes[:10]:
-
-
-        print(
-            n[:120]
-        )
