@@ -1,5 +1,4 @@
 import json
-import base64
 import urllib.parse
 
 
@@ -15,23 +14,9 @@ def build_config(node):
 
             return trojan_config(node)
 
-
-        elif node.startswith("vless://"):
-
-            return vless_config(node)
-
-
-        elif node.startswith("vmess://"):
-
-            return vmess_config(node)
-
-
     except Exception as e:
 
-        print(
-            "节点解析失败:",
-            e
-        )
+        print("配置生成失败:", e)
 
         return None
 
@@ -41,7 +26,7 @@ def build_config(node):
 
 
 # =====================================================
-# 基础 Xray 配置
+# 基础Xray配置
 # =====================================================
 
 def base_config(outbound):
@@ -52,7 +37,7 @@ def base_config(outbound):
 
         "log": {
 
-            "loglevel": "warning"
+            "loglevel": "info"
 
         },
 
@@ -88,42 +73,36 @@ def base_config(outbound):
 
 
 
-
-
 # =====================================================
-# SNI清洗
+# 清理SNI
 # =====================================================
 
-def clean_sni(value):
+def clean_sni(sni):
 
 
-    if not value:
+    if not sni:
 
         return ""
 
 
-    # URL解码
-
-    value = urllib.parse.unquote(
-        value
-    )
+    sni = urllib.parse.unquote(sni)
 
 
-    # 去掉路径
+    # 去除路径
 
-    if "/" in value:
+    if "/" in sni:
 
-        value = value.split("/")[0]
+        sni = sni.split("/")[0]
 
 
-    return value
+    return sni
 
 
 
 
 
 # =====================================================
-# Trojan
+# Trojan解析
 # =====================================================
 
 def trojan_config(node):
@@ -133,8 +112,11 @@ def trojan_config(node):
 
 
     params = urllib.parse.parse_qs(
+
         url.query
+
     )
+
 
 
     server = {
@@ -158,26 +140,78 @@ def trojan_config(node):
 
 
 
-    outbound = {
+
+    # -----------------------
+    # TLS
+    # -----------------------
+
+    tls = {}
 
 
-        "protocol":
 
-        "trojan",
+    # SNI
 
-
-        "settings": {
+    if params.get("sni"):
 
 
-            "servers": [
+        tls["serverName"] = clean_sni(
 
-                server
+            params["sni"][0]
 
-            ]
+        )
 
-        }
 
-    }
+    else:
+
+
+        tls["serverName"] = url.hostname
+
+
+
+
+
+    # fingerprint
+
+    if params.get("fp"):
+
+
+        tls["fingerprint"] = params["fp"][0]
+
+    else:
+
+
+        # 免费节点常用
+
+        tls["fingerprint"] = "chrome"
+
+
+
+
+
+
+    # allowInsecure
+
+    if params.get("allowInsecure"):
+
+
+        value = params["allowInsecure"][0]
+
+
+        if value in [
+
+            "1",
+
+            "true",
+
+            "True"
+
+        ]:
+
+
+            tls["allowInsecure"] = True
+
+
+
 
 
 
@@ -195,323 +229,43 @@ def trojan_config(node):
         )[0],
 
 
+
         "security":
 
-        "tls"
+        "tls",
+
+
+
+        "tlsSettings":
+
+        tls
 
     }
 
 
 
-    tls = {}
 
 
-
-    # =====================
-    # SNI处理
-    # =====================
-
-    if params.get("sni"):
-
-
-        tls["serverName"] = clean_sni(
-
-            params["sni"][0]
-
-        )
-
-
-    elif params.get("peer"):
-
-
-        tls["serverName"] = clean_sni(
-
-            params["peer"][0]
-
-        )
-
-
-    else:
-
-
-        tls["serverName"] = url.hostname
-
-
-
-
-    # =====================
-    # fingerprint
-    # =====================
-
-    if params.get("fp"):
-
-
-        tls["fingerprint"] = params["fp"][0]
-
-
-
-    # 注意：
-    # Xray 26.x 已删除 allowInsecure
-    # 不再写入该参数
-
-
-
-    stream["tlsSettings"] = tls
-
-
-
-
-
-    # =====================
-    # websocket
-    # =====================
-
-    if stream["network"] == "ws":
-
-
-        stream["wsSettings"] = {
-
-
-            "path":
-
-            urllib.parse.unquote(
-
-                params.get(
-
-                    "path",
-
-                    ["/"]
-
-                )[0]
-
-            ),
-
-
-            "headers": {
-
-
-                "Host":
-
-                params.get(
-
-                    "host",
-
-                    [url.hostname]
-
-                )[0]
-
-            }
-
-        }
-
-
-
-    outbound["streamSettings"] = stream
-
-
-
-    return base_config(outbound)
-
-
-
-
-
-# =====================================================
-# VLESS
-# =====================================================
-
-def vless_config(node):
-
-
-    url = urllib.parse.urlparse(node)
-
-
-    params = urllib.parse.parse_qs(
-
-        url.query
-
-    )
-
-
-    user = {
-
-
-        "id":
-
-        url.username,
-
-
-        "encryption":
-
-        "none"
-
-    }
-
-
-
-    if params.get("flow"):
-
-
-        user["flow"] = params["flow"][0]
-
-
-
-    stream = {
-
-
-        "network":
-
-        params.get(
-
-            "type",
-
-            ["tcp"]
-
-        )[0]
-
-    }
-
-
-
-    security = params.get(
-
-        "security",
-
-        [""]
-
-    )[0]
-
-
-
-    if security == "tls":
-
-
-        stream["security"] = "tls"
-
-
-        stream["tlsSettings"] = {
-
-
-            "serverName":
-
-            clean_sni(
-
-                params.get(
-
-                    "sni",
-
-                    [url.hostname]
-
-                )[0]
-
-            )
-
-        }
-
-
-
-    elif security == "reality":
-
-
-        stream["security"]="reality"
-
-
-        stream["realitySettings"]={
-
-
-            "show":False,
-
-
-            "serverName":
-
-            clean_sni(
-
-                params.get(
-
-                    "sni",
-
-                    [url.hostname]
-
-                )[0]
-
-            ),
-
-
-            "fingerprint":
-
-            params.get(
-
-                "fp",
-
-                ["chrome"]
-
-            )[0],
-
-
-            "publicKey":
-
-            params.get(
-
-                "pbk",
-
-                [""]
-
-            )[0],
-
-
-            "shortId":
-
-            params.get(
-
-                "sid",
-
-                [""]
-
-            )[0]
-
-        }
-
-
-
-
-    outbound={
+    outbound = {
 
 
         "protocol":
 
-        "vless",
+        "trojan",
+
 
 
         "settings": {
 
 
-            "vnext":[
+            "servers": [
 
-
-                {
-
-
-                    "address":
-
-                    url.hostname,
-
-
-                    "port":
-
-                    int(url.port),
-
-
-                    "users":[
-
-                        user
-
-                    ]
-
-                }
+                server
 
             ]
 
         },
+
 
 
         "streamSettings":
@@ -522,171 +276,6 @@ def vless_config(node):
 
 
 
+
+
     return base_config(outbound)
-
-
-
-
-
-# =====================================================
-# VMess
-# =====================================================
-
-def vmess_config(node):
-
-
-    try:
-
-
-        data=node.replace(
-
-            "vmess://",
-
-            ""
-
-        )
-
-
-        data += "=" * (
-
-            (-len(data)) % 4
-
-        )
-
-
-        raw=base64.b64decode(data)
-
-
-        info=json.loads(
-
-            raw.decode(
-
-                "utf-8",
-
-                errors="ignore"
-
-            )
-
-        )
-
-
-        user={
-
-
-            "id":
-
-            info.get(
-
-                "id",
-
-                ""
-
-            ),
-
-
-            "alterId":
-
-            int(
-
-                info.get(
-
-                    "aid",
-
-                    0
-
-                )
-
-            ),
-
-
-            "security":
-
-            info.get(
-
-                "scy",
-
-                "auto"
-
-            )
-
-        }
-
-
-
-        outbound={
-
-
-            "protocol":
-
-            "vmess",
-
-
-            "settings":{
-
-
-                "vnext":[
-
-
-                    {
-
-
-                        "address":
-
-                        info["add"],
-
-
-                        "port":
-
-                        int(info["port"]),
-
-
-                        "users":[
-
-                            user
-
-                        ]
-
-                    }
-
-                ]
-
-            }
-
-        }
-
-
-
-        outbound["streamSettings"]={
-
-
-            "network":
-
-            info.get(
-
-                "net",
-
-                "tcp"
-
-            )
-
-        }
-
-
-
-        return base_config(outbound)
-
-
-
-    except Exception as e:
-
-
-        print(
-
-            "VMess解析失败:",
-
-            e
-
-        )
-
-
-        return None
