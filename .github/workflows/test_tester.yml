@@ -67,7 +67,17 @@ jobs:
 
 
 
-      # 运行测试
+      # 1. 采集节点
+
+      - name: Run collector
+
+        run: |
+
+          python collector.py
+
+
+
+      # 2. 测试节点
 
       - name: Run tester
 
