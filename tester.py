@@ -18,7 +18,7 @@ NODE_FILE = "nodes.txt"
 RESULT_FILE = "nodes_tested.json"
 
 
-TEST_COUNT = 100
+TEST_COUNT = 5
 
 
 LOCAL_PORT = 10808
