@@ -1,52 +1,116 @@
 name: Test Trojan Node
 
+
 on:
+
   workflow_dispatch:
+
 
 
 jobs:
 
+
   test:
+
 
     runs-on: ubuntu-latest
 
 
+
     steps:
 
+
+    # =========================
+    # 拉取代码
+    # =========================
+
     - name: Checkout
+
       uses: actions/checkout@v4
 
 
+
+    # =========================
+    # Python环境
+    # =========================
+
     - name: Setup Python
+
       uses: actions/setup-python@v5
+
       with:
+
         python-version: "3.12"
 
 
+
+    # =========================
+    # 安装依赖
+    # =========================
+
     - name: Install requirements
+
       run: |
+
         python -m pip install --upgrade pip
+
         pip install requests pysocks
 
 
-    - name: Give xray permission
+
+    # =========================
+    # 下载Xray
+    # =========================
+
+    - name: Install Xray
+
       run: |
+
+        wget -q https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+
+        unzip -q Xray-linux-64.zip
+
         chmod +x xray
 
+        ./xray version
+
+
+
+    # =========================
+    # 测试Trojan
+    # =========================
 
     - name: Run Trojan test
+
       run: |
+
         python test_node.py
 
 
-    - name: Show logs
+
+    # =========================
+    # 输出调试信息
+    # =========================
+
+    - name: Show debug logs
+
       if: always()
+
       run: |
+
+
         echo "========== XRAY LOG =========="
+
         cat xray.log || true
 
+
+
         echo "========== XRAY ERROR =========="
+
         cat xray_error.log || true
 
-        echo "========== CONFIG =========="
+
+
+        echo "========== XRAY CONFIG =========="
+
         cat xray_test.json || true
