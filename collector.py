@@ -179,11 +179,31 @@ def remove_duplicate(nodes):
 BLOCK_WORDS=[
 
 
-    "127.0.0.1",
+    # 本地
+
+    "127.0.0.",
 
     "localhost",
 
-    "example.com"
+    "0.0.0.0",
+
+
+    # 测试域名
+
+    "example.com",
+
+    "example.org",
+
+    "test.com",
+
+
+    # 无效地址
+
+    "invalid",
+
+    "null",
+
+    "none"
 
 ]
 
@@ -195,12 +215,38 @@ def valid_node(node):
     text=node.lower()
 
 
+
+    # 黑名单
+
     for b in BLOCK_WORDS:
 
 
         if b in text:
 
             return False
+
+
+
+    # 必须有端口
+
+    if not re.search(
+
+        r":[0-9]{2,5}",
+
+        text
+
+    ):
+
+        return False
+
+
+
+    # 过滤明显假节点
+
+
+    if len(node)<50:
+
+        return False
 
 
 
