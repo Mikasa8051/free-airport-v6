@@ -1,0 +1,52 @@
+name: Test Trojan Node
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+
+  test:
+
+    runs-on: ubuntu-latest
+
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+
+    - name: Install requirements
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests pysocks
+
+
+    - name: Give xray permission
+      run: |
+        chmod +x xray
+
+
+    - name: Run Trojan test
+      run: |
+        python test_node.py
+
+
+    - name: Show logs
+      if: always()
+      run: |
+        echo "========== XRAY LOG =========="
+        cat xray.log || true
+
+        echo "========== XRAY ERROR =========="
+        cat xray_error.log || true
+
+        echo "========== CONFIG =========="
+        cat xray_test.json || true
