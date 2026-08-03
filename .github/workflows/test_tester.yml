@@ -104,3 +104,23 @@ jobs:
             nodes_tested.json
 
             xray_test.json
+
+
+
+      - name: Upload tester result
+
+        if: always()
+
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: tester-result
+
+          path: |
+
+            nodes_tested.json
+
+            nodes_score.json
+
+            nodes.txt            
