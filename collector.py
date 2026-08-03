@@ -178,6 +178,37 @@ def remove_duplicate(nodes):
 
 BLOCK_WORDS=[
 
+    "127.0.0.",
+
+    "localhost",
+
+    "0.0.0.0",
+
+    "example.com",
+
+    "invalid",
+
+    "null",
+
+    "none",
+
+
+    "banv2ray",
+
+    "expired",
+
+    "traffic",
+
+    "channel",
+
+    "telegram",
+
+    "poki",
+
+    "test"
+
+]
+
 
     # 本地
 
@@ -688,6 +719,82 @@ def collect_nodes():
 
     )
 
+
+    
+# =========================
+# 协议数量平衡
+# =========================
+
+
+vless=[]
+
+trojan=[]
+
+ss=[]
+
+vmess=[]
+
+
+for n in nodes:
+
+
+    p=detect_protocol(n)
+
+
+    if p=="vless":
+
+        vless.append(n)
+
+
+    elif p=="trojan":
+
+        trojan.append(n)
+
+
+    elif p=="ss":
+
+        ss.append(n)
+
+
+    elif p=="vmess":
+
+        vmess.append(n)
+
+
+
+
+nodes=(
+
+    vless[:200]
+
+    +
+
+    trojan[:100]
+
+    +
+
+    ss[:100]
+
+    +
+
+    vmess[:50]
+
+)
+
+
+
+
+
+nodes.sort(
+
+    key=lambda x:
+
+    quality_score(x),
+
+    reverse=True
+
+)
+    
 
 
     print(
