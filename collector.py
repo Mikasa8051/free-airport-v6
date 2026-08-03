@@ -1,76 +1,62 @@
-import requests
-import base64
-import re
 import time
-import json
-from urllib.parse import urlparse
+import requests
 
-
-SOURCES_FILE = "sources.txt"
-
-TIMEOUT = 15
-
-
-# =========================
-# 读取源
-# =========================
-
-def load_sources():
-
-    result = []
-
-    with open(
-        SOURCES_FILE,
-        "r",
-        encoding="utf-8"
-    ) as f:
-
-        for line in f:
-
-            line=line.strip()
-
-            if not line:
-                continue
-
-            if line.startswith("#"):
-                continue
-
-            result.append(line)
-
-
-    return result
+from validator import validate_nodes
 
 
 
 # =========================
-# 下载
+# 订阅源
+# =========================
+
+SOURCES = [
+
+    "https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt",
+
+    "https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/main/V2Ray-Config-By-EbraSha.txt",
+
+    "https://raw.githubusercontent.com/zhuhaiuk/free-nodes/main/nodes.txt"
+
+]
+
+
+
+# =========================
+# 下载订阅
 # =========================
 
 def fetch(url):
 
+
     try:
 
+
+        print()
+
         print(
-            "\n读取源:",
+            "读取源:",
             url
         )
 
 
-        r=requests.get(
+        r = requests.get(
 
             url,
 
-            timeout=TIMEOUT,
+            timeout=15,
 
             headers={
+
                 "User-Agent":
                 "Mozilla/5.0"
+
             }
 
         )
 
 
-        if r.status_code==200:
+        if r.status_code == 200:
+
 
             return r.text
 
@@ -78,304 +64,16 @@ def fetch(url):
 
     except Exception as e:
 
+
         print(
             "读取失败:",
             e
         )
 
 
-    return ""
 
+    return None
 
-
-# =========================
-# base64
-# =========================
-
-def decode_base64(text):
-
-    try:
-
-        text=text.strip()
-
-
-        text=text.replace(
-            "\n",
-            ""
-        )
-
-        text=text.replace(
-            "\r",
-            ""
-        )
-
-
-        padding=len(text)%4
-
-
-        if padding:
-
-            text+="="*(4-padding)
-
-
-
-        data=base64.b64decode(
-            text
-        )
-
-
-        return data.decode(
-            "utf-8",
-            errors="ignore"
-        )
-
-
-    except:
-
-        return ""
-
-
-
-# =========================
-# VMess解析
-# =========================
-
-def parse_vmess(node):
-
-
-    try:
-
-
-        raw=node.replace(
-            "vmess://",
-            ""
-        )
-
-
-        data=decode_base64(
-            raw
-        )
-
-
-        if not data:
-
-            return {}
-
-
-
-        return json.loads(
-            data
-        )
-
-
-
-    except:
-
-
-        return {}
-
-
-
-
-
-# =========================
-# 获取地址
-# =========================
-
-def get_address(node):
-
-
-    try:
-
-
-        # VMess
-
-        if node.startswith(
-            "vmess://"
-        ):
-
-
-            info=parse_vmess(
-                node
-            )
-
-
-            return info.get(
-                "add",
-                ""
-            )
-
-
-
-        # 其它协议
-
-
-        url=urlparse(
-            node
-        )
-
-
-        return url.hostname or ""
-
-
-
-    except:
-
-
-        return ""
-
-
-
-# =========================
-# 获取端口
-# =========================
-
-def get_port(node):
-
-
-    try:
-
-
-        if node.startswith(
-            "vmess://"
-        ):
-
-
-            info=parse_vmess(
-                node
-            )
-
-
-            return int(
-                info.get(
-                    "port",
-                    0
-                )
-            )
-
-
-        url=urlparse(
-            node
-        )
-
-
-        return url.port or 0
-
-
-
-    except:
-
-
-        return 0
-
-
-
-
-
-# =========================
-# 节点过滤
-# =========================
-
-def valid_node(node):
-
-
-    address=get_address(
-        node
-    )
-
-
-    port=get_port(
-        node
-    )
-
-
-
-    if not address:
-
-        return False
-
-
-
-    # IP过滤
-
-    bad_prefix=[
-
-        "127.",
-
-        "10.",
-
-        "192.168.",
-
-        "172.16.",
-
-        "localhost"
-
-    ]
-
-
-
-    for p in bad_prefix:
-
-
-        if address.startswith(p):
-
-            return False
-
-
-
-
-    if address in [
-
-        "0.0.0.0",
-
-        "::"
-
-    ]:
-
-        return False
-
-
-
-
-    # 垃圾端口
-
-    bad_ports=[
-
-        53,
-
-        80,
-
-        81,
-
-        82,
-
-        83,
-
-        84,
-
-        85,
-
-        86,
-
-        87,
-
-        88,
-
-        89,
-
-        8080
-
-    ]
-
-
-
-    if port in bad_ports:
-
-        return False
-
-
-
-    return True
 
 
 
@@ -384,55 +82,54 @@ def valid_node(node):
 # 提取节点
 # =========================
 
-def extract_nodes(text):
+def extract_nodes(data):
 
 
-    nodes=[]
+    result=[]
 
 
-    # 明文
-
-    pattern=(
-
-        r'(?:vmess|vless|trojan|ss)://\S+'
-
-    )
+    for line in data.splitlines():
 
 
-    if "://" in text:
+        line=line.strip()
 
 
-        nodes.extend(
-            re.findall(
-                pattern,
-                text
+
+        if (
+
+            line.startswith(
+                "vmess://"
             )
-        )
+
+            or
+
+            line.startswith(
+                "vless://"
+            )
+
+            or
+
+            line.startswith(
+                "trojan://"
+            )
+
+            or
+
+            line.startswith(
+                "ss://"
+            )
+
+        ):
 
 
-    else:
-
-
-        decoded=decode_base64(
-            text
-        )
-
-
-        if decoded:
-
-
-            nodes.extend(
-
-                re.findall(
-                    pattern,
-                    decoded
-                )
-
+            result.append(
+                line
             )
 
 
 
-    return nodes
+    return result
+
 
 
 
@@ -444,29 +141,49 @@ def extract_nodes(text):
 def remove_duplicate(nodes):
 
 
-    result=[]
-
-    seen=set()
-
-
-    for n in nodes:
-
-
-        n=n.strip()
-
-
-        if n in seen:
-
-            continue
-
-
-        seen.add(n)
-
-        result.append(n)
+    return list(
+        set(nodes)
+    )
 
 
 
-    return result
+
+
+# =========================
+# 基础过滤
+# =========================
+
+def valid_node(node):
+
+
+    if len(node)<20:
+
+        return False
+
+
+
+    bad=[
+
+        "127.0.0.1",
+
+        "localhost",
+
+        "example.com"
+
+    ]
+
+
+    for b in bad:
+
+
+        if b in node:
+
+
+            return False
+
+
+
+    return True
 
 
 
@@ -492,17 +209,28 @@ def statistics(nodes):
     }
 
 
+
     for n in nodes:
 
 
-        for k in stat:
+        if n.startswith("vmess://"):
+
+            stat["vmess"]+=1
 
 
-            if n.startswith(
-                k+"://"
-            ):
+        elif n.startswith("vless://"):
 
-                stat[k]+=1
+            stat["vless"]+=1
+
+
+        elif n.startswith("trojan://"):
+
+            stat["trojan"]+=1
+
+
+        elif n.startswith("ss://"):
+
+            stat["ss"]+=1
 
 
 
@@ -511,8 +239,9 @@ def statistics(nodes):
 
 
 
+
 # =========================
-# 主函数
+# 主采集
 # =========================
 
 def collect_nodes():
@@ -521,18 +250,16 @@ def collect_nodes():
     nodes=[]
 
 
-    sources=load_sources()
-
-
 
     print(
         "订阅源数量:",
-        len(sources)
+        len(SOURCES)
     )
 
 
 
-    for s in sources:
+    for s in SOURCES:
+
 
 
         data=fetch(
@@ -541,6 +268,7 @@ def collect_nodes():
 
 
         if not data:
+
 
             continue
 
@@ -562,7 +290,9 @@ def collect_nodes():
         )
 
 
+
         time.sleep(1)
+
 
 
 
@@ -572,6 +302,11 @@ def collect_nodes():
     )
 
 
+
+
+    # =========================
+    # 第一次去重
+    # =========================
 
     nodes=remove_duplicate(
         nodes
@@ -585,13 +320,21 @@ def collect_nodes():
 
 
 
+
+
+    # =========================
+    # 基础过滤
+    # =========================
+
     before=len(nodes)
 
 
 
     nodes=[
 
-        n for n in nodes
+        n
+
+        for n in nodes
 
         if valid_node(n)
 
@@ -600,21 +343,48 @@ def collect_nodes():
 
 
     print(
-        "过滤掉:",
+        "基础过滤掉:",
         before-len(nodes)
     )
 
 
+
     print(
-        "有效节点:",
+        "基础有效:",
         len(nodes)
     )
 
 
 
+
+
+    # =========================
+    # validator二次质量过滤
+    # =========================
+
+    nodes=validate_nodes(
+        nodes
+    )
+
+
+
+    print(
+        "质量过滤后:",
+        len(nodes)
+    )
+
+
+
+
+
+    # =========================
+    # 节点统计
+    # =========================
+
     print(
         "\n======节点统计======"
     )
+
 
 
     stat=statistics(
@@ -624,11 +394,17 @@ def collect_nodes():
 
     for k,v in stat.items():
 
+
         print(
+
             k.upper(),
+
             ":",
+
             v
+
         )
+
 
 
     print(
@@ -643,6 +419,10 @@ def collect_nodes():
 
 
 
+# =========================
+# 测试入口
+# =========================
+
 if __name__=="__main__":
 
 
@@ -656,6 +436,7 @@ if __name__=="__main__":
 
 
     for n in nodes[:10]:
+
 
         print(
             n[:120]
