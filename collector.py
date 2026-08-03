@@ -639,3 +639,216 @@ def statistics(nodes):
 
 
     return stat
+
+
+
+# =========================
+# 主采集流程
+# =========================
+
+def collect_nodes():
+
+
+    print(
+        "订阅源数量:",
+        len(SOURCES)
+    )
+
+
+    nodes=[]
+
+
+    for s in SOURCES:
+
+
+        data=fetch(
+            s
+        )
+
+
+        if not data:
+
+            continue
+
+
+
+        temp=extract_nodes(
+            data
+        )
+
+
+        print(
+            "发现节点:",
+            len(temp)
+        )
+
+
+        nodes.extend(
+            temp
+        )
+
+
+        time.sleep(1)
+
+
+
+    print()
+
+    print(
+        "原始节点:",
+        len(nodes)
+    )
+
+
+
+    # 第一次去重
+
+    nodes=remove_duplicate(
+        nodes
+    )
+
+
+    print(
+        "核心去重:",
+        len(nodes)
+    )
+
+
+
+    before=len(nodes)
+
+
+
+    # 过滤
+
+    nodes=[
+
+        n for n in nodes
+
+        if valid_node(n)
+
+    ]
+
+
+
+    print(
+        "过滤掉:",
+        before-len(nodes)
+    )
+
+
+
+    print(
+        "有效节点:",
+        len(nodes)
+    )
+
+
+
+    # 排序
+
+    nodes.sort(
+
+        key=protocol_score,
+
+        reverse=True
+
+    )
+
+
+
+    print()
+
+
+    print(
+        "======节点统计======"
+    )
+
+
+    stat=statistics(
+        nodes
+    )
+
+
+    for k,v in stat.items():
+
+        print(
+
+            k.upper(),
+
+            ":",
+
+            v
+
+        )
+
+
+    print(
+        "===================="
+    )
+
+
+
+    # 保存节点
+
+
+    with open(
+
+        "nodes.txt",
+
+        "w",
+
+        encoding="utf-8"
+
+    ) as f:
+
+
+        for n in nodes:
+
+            f.write(
+                n+"\n"
+            )
+
+
+
+    print()
+
+
+    print(
+        "节点已保存:",
+        "nodes.txt"
+    )
+
+
+
+    return nodes
+
+
+
+
+
+# =========================
+# 程序入口
+# =========================
+
+if __name__=="__main__":
+
+
+    nodes=collect_nodes()
+
+
+
+    print()
+
+
+    print(
+        "前10节点:"
+    )
+
+
+    for n in nodes[:10]:
+
+
+        print(
+            n[:120]
+        )
