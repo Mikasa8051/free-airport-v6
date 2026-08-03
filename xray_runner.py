@@ -19,13 +19,11 @@ LOCAL_PORT = 2080
 
 def start_xray(config):
 
-
     with open(
         CONFIG,
         "w",
         encoding="utf-8"
     ) as f:
-
 
         json.dump(
             config,
@@ -67,9 +65,6 @@ def start_xray(config):
     )
 
 
-
-    # 等待Xray启动
-
     time.sleep(2)
 
 
@@ -80,7 +75,7 @@ def start_xray(config):
 
 
 # =========================
-# 检查代理端口
+# 检查SOCKS端口
 # =========================
 
 def check_port():
@@ -112,7 +107,16 @@ def check_port():
 
 
 
-    except Exception:
+    except Exception as e:
+
+
+        print(
+
+            "端口检查失败:",
+
+            repr(e)
+
+        )
 
 
         return False
@@ -122,51 +126,10 @@ def check_port():
 
 
 # =========================
-# 下载测速
+# 单地址诊断测速
 # =========================
 
-def test_speed():
-
-
-    if not check_port():
-
-
-        print(
-
-            "代理端口启动失败"
-
-        )
-
-
-        return None
-
-
-
-
-    proxies = {
-
-
-        "http":
-
-        f"socks5h://127.0.0.1:{LOCAL_PORT}",
-
-
-        "https":
-
-        f"socks5h://127.0.0.1:{LOCAL_PORT}"
-
-    }
-
-
-
-
-
-    url = (
-
-        "http://cachefly.cachefly.net/10mb.test"
-
-    )
-
+def download_test(url, proxies):
 
 
     headers = {
@@ -180,12 +143,24 @@ def test_speed():
 
 
 
-
-
     total = 0
 
 
     start = time.time()
+
+
+
+    print("=========================")
+
+    print(
+
+        "开始测试:",
+
+        url
+
+    )
+
+    print("=========================")
 
 
 
@@ -218,7 +193,42 @@ def test_speed():
 
 
 
+            print(
+
+                "响应头:",
+
+                dict(r.headers)
+
+            )
+
+
+
+            content_length = r.headers.get(
+
+                "Content-Length"
+
+            )
+
+
+            print(
+
+                "Content-Length:",
+
+                content_length
+
+            )
+
+
+
+
             if r.status_code != 200:
+
+
+                print(
+
+                    "HTTP失败"
+
+                )
 
 
                 return None
@@ -227,9 +237,13 @@ def test_speed():
 
 
 
+            block_count = 0
+
+
+
             for chunk in r.iter_content(
 
-                chunk_size=8192
+                chunk_size=16384
 
             ):
 
@@ -238,8 +252,34 @@ def test_speed():
                 if chunk:
 
 
-                    total += len(chunk)
+                    block_count += 1
 
+
+                    size = len(chunk)
+
+
+
+                    total += size
+
+
+
+                    print(
+
+                        "收到数据块:",
+
+                        block_count,
+
+                        size,
+
+                        "bytes",
+
+                        "累计:",
+
+                        total,
+
+                        "bytes"
+
+                    )
 
 
 
@@ -253,12 +293,44 @@ def test_speed():
 
 
 
-        if total <= 0:
+        print(
+
+            "下载结束"
+
+        )
+
+
+        print(
+
+            "总接收:",
+
+            total,
+
+            "bytes"
+
+        )
+
+
+        print(
+
+            "耗时:",
+
+            round(cost,3),
+
+            "秒"
+
+        )
+
+
+
+
+
+        if total == 0:
 
 
             print(
 
-                "没有下载数据"
+                "错误:服务器返回0字节"
 
             )
 
@@ -271,7 +343,6 @@ def test_speed():
 
         speed = (
 
-
             total /
 
             cost /
@@ -280,9 +351,7 @@ def test_speed():
 
             1024
 
-
         )
-
 
 
         delay = int(
@@ -293,27 +362,18 @@ def test_speed():
 
 
 
-
-
         print(
 
-            "下载大小:",
+            "速度:",
 
-            round(total / 1024 / 1024,2),
+            round(speed,3),
 
-            "MB"
+            "MB/s"
 
         )
 
 
-
         print(
-
-            "测速成功:",
-
-            round(speed,2),
-
-            "MB/s",
 
             "延迟:",
 
@@ -326,13 +386,12 @@ def test_speed():
 
 
 
-
         return {
 
 
             "speed":
 
-            round(speed,2),
+            round(speed,3),
 
 
 
@@ -346,16 +405,125 @@ def test_speed():
 
 
 
+
     except Exception as e:
 
 
         print(
 
-            "测速失败:",
+            "下载异常:",
 
             repr(e)
 
         )
+
+
+        return None
+
+
+
+
+
+# =========================
+# 测速入口
+# =========================
+
+def test_speed():
+
+
+    if not check_port():
+
+
+        print(
+
+            "代理端口启动失败"
+
+        )
+
+
+        return None
+
+
+
+
+
+    proxies = {
+
+
+        "http":
+
+        f"socks5h://127.0.0.1:{LOCAL_PORT}",
+
+
+
+        "https":
+
+        f"socks5h://127.0.0.1:{LOCAL_PORT}"
+
+    }
+
+
+
+
+    urls = [
+
+
+        "http://cachefly.cachefly.net/10mb.test",
+
+
+
+        "http://speedtest.tele2.net/10MB.zip"
+
+    ]
+
+
+
+
+
+    for url in urls:
+
+
+        result = download_test(
+
+            url,
+
+            proxies
+
+        )
+
+
+        if result:
+
+
+            print(
+
+                "测速成功"
+
+            )
+
+
+            return result
+
+
+
+        else:
+
+
+            print(
+
+                "测速失败，切换下一个测速源"
+
+            )
+
+
+
+
+
+    print(
+
+        "全部测速源失败"
+
+    )
 
 
     return None
@@ -382,7 +550,6 @@ def stop_xray(process):
 
 
         process.terminate()
-
 
 
         process.wait(
