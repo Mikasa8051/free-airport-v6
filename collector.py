@@ -962,7 +962,27 @@ def collect_nodes():
     # 保存节点
 
 
-    with open(
+    
+
+
+    # =========================
+    # 节点质量排序
+    # =========================
+
+
+    nodes.sort(
+
+        key=lambda x:
+
+        quality_score(x),
+
+        reverse=True
+
+    )
+
+
+
+with open(
 
         "nodes.txt",
 
@@ -988,24 +1008,8 @@ def collect_nodes():
         "节点已保存:",
         "nodes.txt"
     )
-
-
-
-    # =========================
-    # 节点质量排序
-    # =========================
-
-
-    nodes.sort(
-
-        key=lambda x:
-
-        quality_score(x),
-
-        reverse=True
-
-    )
-
+    
+    
 
     print(
         "\n质量排序完成"
