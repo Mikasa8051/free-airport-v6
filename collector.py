@@ -572,6 +572,193 @@ def protocol_score(node):
 # 统计
 # =========================
 
+
+# =========================
+# 节点评分
+# =========================
+
+
+def detect_protocol(node):
+
+    if node.startswith("vless://"):
+        return "vless"
+
+    if node.startswith("trojan://"):
+        return "trojan"
+
+    if node.startswith("ss://"):
+        return "ss"
+
+    if node.startswith("vmess://"):
+        return "vmess"
+
+    return "unknown"
+
+
+
+def detect_region(node):
+
+
+    text=node.lower()
+
+
+    region="OTHER"
+
+
+    region_map={
+
+        "hk":
+        [
+            "hong",
+            "hk",
+            "hongkong"
+        ],
+
+
+        "jp":
+        [
+            "japan",
+            "jp",
+            "tokyo"
+        ],
+
+
+        "sg":
+        [
+            "singapore",
+            "sg"
+        ],
+
+
+        "tw":
+        [
+            "taiwan",
+            "tw"
+        ],
+
+
+        "kr":
+        [
+            "korea",
+            "kr"
+        ],
+
+
+        "us":
+        [
+            "us",
+            "america",
+            "usa"
+        ]
+
+    }
+
+
+
+    for r,keys in region_map.items():
+
+
+        for k in keys:
+
+
+            if k in text:
+
+                return r
+
+
+
+    return region
+
+
+
+
+
+def quality_score(node):
+
+
+    score=0
+
+
+    protocol=detect_protocol(node)
+
+
+
+    # 协议评分
+
+    if protocol=="vless":
+
+
+        if "reality" in node.lower():
+
+            score+=100
+
+        elif "security=tls" in node.lower():
+
+            score+=75
+
+        else:
+
+            score+=60
+
+
+
+    elif protocol=="trojan":
+
+        score+=85
+
+
+
+    elif protocol=="ss":
+
+        score+=50
+
+
+
+    elif protocol=="vmess":
+
+        score+=30
+
+
+
+    # 地区评分
+
+
+    region=detect_region(node)
+
+
+
+    region_weight={
+
+
+        "hk":30,
+
+        "jp":25,
+
+        "sg":20,
+
+        "tw":20,
+
+        "kr":15,
+
+        "us":10,
+
+        "OTHER":0
+
+    }
+
+
+
+    score+=region_weight.get(
+
+        region,
+
+        0
+
+    )
+
+
+    return score
+
 def statistics(nodes):
 
 
@@ -802,6 +989,37 @@ def collect_nodes():
         "nodes.txt"
     )
 
+
+
+        # =========================
+    # 节点质量排序
+    # =========================
+
+
+    nodes.sort(
+
+        key=lambda x:
+
+        quality_score(x),
+
+        reverse=True
+
+    )
+
+
+    print(
+        "\n质量排序完成"
+    )
+
+
+
+    for n in nodes[:5]:
+
+        print(
+            "TOP:",
+            quality_score(n),
+            n[:100]
+        )
 
 
     return nodes
