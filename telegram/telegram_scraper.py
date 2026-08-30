@@ -7,14 +7,16 @@ import requests
 
 # =========================================================
 
-# 基础路径
+# 项目目录
 
 # =========================================================
 
-BASE_DIR = Path(**file**).resolve().parent.parent
+BASE_DIR = Path.cwd()
 
 SOURCE_FILE = BASE_DIR / "telegram" / "sources.txt"
+
 OUTPUT_DIR = BASE_DIR / "output"
+
 OUTPUT_FILE = OUTPUT_DIR / "telegram_nodes.txt"
 
 # =========================================================
@@ -35,30 +37,31 @@ HEADERS = {
 
 # =========================================================
 
-# 节点协议
-
-#
-
-# 注意：
-
-# 这里故意使用非常简单的正则表达式，
-
-# 避免引号、反引号造成 Python 字符串语法问题。
+# 支持的节点协议
 
 # =========================================================
 
 NODE_PATTERNS = [
+
+```
 r"vless://\S+",
+
 r"vmess://\S+",
+
 r"trojan://\S+",
+
 r"ss://\S+",
+
 r"hysteria2://\S+",
+
 r"hy2://\S+",
+```
+
 ]
 
 # =========================================================
 
-# 读取 Telegram 频道列表
+# 读取 Telegram 频道
 
 # =========================================================
 
@@ -68,26 +71,43 @@ def load_sources():
 if not SOURCE_FILE.exists():
 
     print(
-        f"找不到频道列表: {SOURCE_FILE}"
+        "找不到频道列表:"
+    )
+
+    print(
+        SOURCE_FILE
     )
 
     return []
 
+
 sources = []
 
-for line in SOURCE_FILE.read_text(
+
+lines = SOURCE_FILE.read_text(
     encoding="utf-8"
-).splitlines():
+).splitlines()
+
+
+for line in lines:
 
     line = line.strip()
 
+
     if not line:
+
         continue
+
 
     if line.startswith("#"):
+
         continue
 
-    sources.append(line)
+
+    sources.append(
+        line
+    )
+
 
 return sources
 ```
@@ -101,16 +121,21 @@ return sources
 def normalize_url(url):
 
 ```
-# HTML 实体还原
-url = html.unescape(url)
+url = html.unescape(
+    url
+)
 
-# Telegram / HTML 中可能出现的转义
-url = url.replace("\\/", "/")
 
-# 删除常见的 Markdown / HTML 尾部字符
+url = url.replace(
+    "\\/",
+    "/"
+)
+
+
 while url and url[-1] in ".,;:)>]}\"'`":
 
     url = url[:-1]
+
 
 return url.strip()
 ```
@@ -126,8 +151,11 @@ def extract_nodes(text):
 ```
 nodes = set()
 
-# HTML 实体还原
-text = html.unescape(text)
+
+text = html.unescape(
+    text
+)
+
 
 for pattern in NODE_PATTERNS:
 
@@ -137,34 +165,30 @@ for pattern in NODE_PATTERNS:
         flags=re.IGNORECASE
     )
 
+
     for node in matches:
 
-        node = normalize_url(node)
+        node = normalize_url(
+            node
+        )
+
 
         if not node:
+
             continue
 
-        # 基础协议检查
-        lower_node = node.lower()
 
-        if not (
-            lower_node.startswith("vless://")
-            or lower_node.startswith("vmess://")
-            or lower_node.startswith("trojan://")
-            or lower_node.startswith("ss://")
-            or lower_node.startswith("hysteria2://")
-            or lower_node.startswith("hy2://")
-        ):
-            continue
+        nodes.add(
+            node
+        )
 
-        nodes.add(node)
 
 return nodes
 ```
 
 # =========================================================
 
-# 抓取单个 Telegram 页面
+# 抓取 Telegram 页面
 
 # =========================================================
 
@@ -172,23 +196,42 @@ def fetch_source(url):
 
 ```
 print()
-print("=" * 60)
-print("抓取 Telegram:")
-print(url)
-print("=" * 60)
+
+print(
+    "=" * 60
+)
+
+print(
+    "抓取 Telegram:"
+)
+
+print(
+    url
+)
+
+print(
+    "=" * 60
+)
+
 
 try:
 
     response = requests.get(
+
         url,
+
         headers=HEADERS,
+
         timeout=REQUEST_TIMEOUT
+
     )
+
 
     print(
         "HTTP:",
         response.status_code
     )
+
 
     if response.status_code != 200:
 
@@ -199,16 +242,20 @@ try:
 
         return set()
 
+
     nodes = extract_nodes(
         response.text
     )
+
 
     print(
         "发现节点:",
         len(nodes)
     )
 
+
     return nodes
+
 
 except requests.RequestException as e:
 
@@ -218,6 +265,7 @@ except requests.RequestException as e:
     )
 
     return set()
+
 
 except Exception as e:
 
@@ -243,22 +291,51 @@ OUTPUT_DIR.mkdir(
     exist_ok=True
 )
 
+
 sorted_nodes = sorted(
     nodes
 )
 
+
 OUTPUT_FILE.write_text(
-    "\n".join(sorted_nodes)
-    + ("\n" if sorted_nodes else ""),
+
+    "\n".join(
+        sorted_nodes
+    )
+    + (
+        "\n"
+        if sorted_nodes
+        else ""
+    ),
+
     encoding="utf-8"
+
 )
 
+
 print()
-print("=" * 60)
-print("节点保存完成")
-print("文件:", OUTPUT_FILE)
-print("节点数量:", len(sorted_nodes))
-print("=" * 60)
+
+print(
+    "=" * 60
+)
+
+print(
+    "节点保存完成"
+)
+
+print(
+    "文件:",
+    OUTPUT_FILE
+)
+
+print(
+    "节点数量:",
+    len(sorted_nodes)
+)
+
+print(
+    "=" * 60
+)
 ```
 
 # =========================================================
@@ -271,11 +348,22 @@ def main():
 
 ```
 print()
-print("========================================")
-print(" Telegram 公共频道节点抓取器")
-print("========================================")
+
+print(
+    "========================================"
+)
+
+print(
+    " Telegram 公共频道节点抓取器"
+)
+
+print(
+    "========================================"
+)
+
 
 sources = load_sources()
+
 
 if not sources:
 
@@ -285,12 +373,15 @@ if not sources:
 
     return
 
+
 print(
     "频道数量:",
     len(sources)
 )
 
+
 all_nodes = set()
+
 
 for source in sources:
 
@@ -298,19 +389,27 @@ for source in sources:
         source
     )
 
+
     all_nodes.update(
         nodes
     )
 
-    # 避免连续请求过快
-    time.sleep(1)
+
+    time.sleep(
+        1
+    )
+
 
 save_nodes(
     all_nodes
 )
 
+
 print()
-print("抓取任务完成")
+
+print(
+    "抓取任务完成"
+)
 ```
 
 if **name** == "**main**":
