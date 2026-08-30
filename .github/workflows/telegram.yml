@@ -11,12 +11,11 @@ contents: write
 jobs:
 scrape:
 runs-on: ubuntu-latest
+steps:
+- name: Checkout
+uses: actions/checkout@v5
 
 ```
-steps:
-  - name: Checkout
-    uses: actions/checkout@v5
-
   - name: Setup Python
     uses: actions/setup-python@v6
     with:
