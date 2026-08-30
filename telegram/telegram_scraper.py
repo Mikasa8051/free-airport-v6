@@ -21,23 +21,36 @@ HEADERS = {
 )
 }
 
+# =========================================================
+
+# 支持的节点协议
+
+# =========================================================
+
 NODE_PATTERNS = [
-r"vless://[^\s<>'"`]+",
-    r"vmess://[^\s<>'\"`]+",
-r"trojan://[^\s<>'"`]+",
-    r"ss://[^\s<>'\"`]+",
-r"hysteria2://[^\s<>'"`]+",
-    r"hy2://[^\s<>'\"`]+",
+r'vless://[^\s<>'"`]+',
+    r'vmess://[^\s<>\'"`]+',
+r'trojan://[^\s<>'"`]+',
+    r'ss://[^\s<>\'"`]+',
+r'hysteria2://[^\s<>'"`]+',
+    r'hy2://[^\s<>\'"`]+',
 ]
 
+# =========================================================
+
+# 读取 Telegram 频道
+
+# =========================================================
+
 def load_sources():
-"""
-读取 Telegram 频道列表。
-"""
 
 ```
 if not SOURCE_FILE.exists():
-    print(f"找不到频道列表: {SOURCE_FILE}")
+
+    print(
+        f"找不到频道列表: {SOURCE_FILE}"
+    )
+
     return []
 
 sources = []
@@ -59,26 +72,33 @@ for line in SOURCE_FILE.read_text(
 return sources
 ```
 
+# =========================================================
+
+# 清理节点
+
+# =========================================================
+
 def normalize_url(url):
-"""
-清理节点 URL。
-"""
 
 ```
 url = html.unescape(url)
 
 url = url.replace("\\/", "/")
 
-# 去掉常见 HTML 尾部字符
-url = url.rstrip(".,;)>]}")
+url = url.rstrip(
+    ".,;)>]}"
+)
 
 return url.strip()
 ```
 
+# =========================================================
+
+# 提取节点
+
+# =========================================================
+
 def extract_nodes(text):
-"""
-从 Telegram 网页内容中提取节点。
-"""
 
 ```
 nodes = set()
@@ -103,10 +123,13 @@ for pattern in NODE_PATTERNS:
 return nodes
 ```
 
+# =========================================================
+
+# 抓取 Telegram 页面
+
+# =========================================================
+
 def fetch_source(url):
-"""
-抓取单个 Telegram 网页。
-"""
 
 ```
 print()
@@ -167,10 +190,13 @@ except Exception as e:
     return set()
 ```
 
+# =========================================================
+
+# 保存节点
+
+# =========================================================
+
 def save_nodes(nodes):
-"""
-保存节点。
-"""
 
 ```
 OUTPUT_DIR.mkdir(
@@ -178,12 +204,13 @@ OUTPUT_DIR.mkdir(
     exist_ok=True
 )
 
-sorted_nodes = sorted(nodes)
+sorted_nodes = sorted(
+    nodes
+)
 
 OUTPUT_FILE.write_text(
-    "\n".join(sorted_nodes) + (
-        "\n" if sorted_nodes else ""
-    ),
+    "\n".join(sorted_nodes)
+    + ("\n" if sorted_nodes else ""),
     encoding="utf-8"
 )
 
@@ -194,6 +221,12 @@ print("文件:", OUTPUT_FILE)
 print("节点数量:", len(sorted_nodes))
 print("=" * 60)
 ```
+
+# =========================================================
+
+# 主程序
+
+# =========================================================
 
 def main():
 
@@ -230,7 +263,6 @@ for source in sources:
         nodes
     )
 
-    # 避免连续请求过快
     time.sleep(1)
 
 save_nodes(
@@ -242,4 +274,7 @@ print("抓取任务完成")
 ```
 
 if **name** == "**main**":
+
+```
 main()
+```
