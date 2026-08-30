@@ -5,11 +5,23 @@ from pathlib import Path
 
 import requests
 
+# =========================================================
+
+# 基础路径
+
+# =========================================================
+
 BASE_DIR = Path(**file**).resolve().parent.parent
 
 SOURCE_FILE = BASE_DIR / "telegram" / "sources.txt"
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_FILE = OUTPUT_DIR / "telegram_nodes.txt"
+
+# =========================================================
+
+# 网络设置
+
+# =========================================================
 
 REQUEST_TIMEOUT = 20
 
@@ -23,22 +35,30 @@ HEADERS = {
 
 # =========================================================
 
-# 支持的节点协议
+# 节点协议
+
+#
+
+# 注意：
+
+# 这里故意使用非常简单的正则表达式，
+
+# 避免引号、反引号造成 Python 字符串语法问题。
 
 # =========================================================
 
 NODE_PATTERNS = [
-r'vless://[^\s<>'"`]+',
-    r'vmess://[^\s<>\'"`]+',
-r'trojan://[^\s<>'"`]+',
-    r'ss://[^\s<>\'"`]+',
-r'hysteria2://[^\s<>'"`]+',
-    r'hy2://[^\s<>\'"`]+',
+r"vless://\S+",
+r"vmess://\S+",
+r"trojan://\S+",
+r"ss://\S+",
+r"hysteria2://\S+",
+r"hy2://\S+",
 ]
 
 # =========================================================
 
-# 读取 Telegram 频道
+# 读取 Telegram 频道列表
 
 # =========================================================
 
@@ -81,13 +101,16 @@ return sources
 def normalize_url(url):
 
 ```
+# HTML 实体还原
 url = html.unescape(url)
 
+# Telegram / HTML 中可能出现的转义
 url = url.replace("\\/", "/")
 
-url = url.rstrip(
-    ".,;)>]}"
-)
+# 删除常见的 Markdown / HTML 尾部字符
+while url and url[-1] in ".,;:)>]}\"'`":
+
+    url = url[:-1]
 
 return url.strip()
 ```
@@ -103,6 +126,7 @@ def extract_nodes(text):
 ```
 nodes = set()
 
+# HTML 实体还原
 text = html.unescape(text)
 
 for pattern in NODE_PATTERNS:
@@ -117,15 +141,30 @@ for pattern in NODE_PATTERNS:
 
         node = normalize_url(node)
 
-        if node:
-            nodes.add(node)
+        if not node:
+            continue
+
+        # 基础协议检查
+        lower_node = node.lower()
+
+        if not (
+            lower_node.startswith("vless://")
+            or lower_node.startswith("vmess://")
+            or lower_node.startswith("trojan://")
+            or lower_node.startswith("ss://")
+            or lower_node.startswith("hysteria2://")
+            or lower_node.startswith("hy2://")
+        ):
+            continue
+
+        nodes.add(node)
 
 return nodes
 ```
 
 # =========================================================
 
-# 抓取 Telegram 页面
+# 抓取单个 Telegram 页面
 
 # =========================================================
 
@@ -263,6 +302,7 @@ for source in sources:
         nodes
     )
 
+    # 避免连续请求过快
     time.sleep(1)
 
 save_nodes(
