@@ -15,7 +15,7 @@ PROTOCOLS = (
 
 def clean_node(node):
 
-```
+ 
 if not node:
     return ""
 
@@ -40,22 +40,22 @@ node = node.rstrip(
 )
 
 return node
-```
+
 
 def is_valid_protocol(node):
 
-```
+
 lower = node.lower()
 
 return any(
     lower.startswith(protocol)
     for protocol in PROTOCOLS
 )
-```
+
 
 def has_invalid_characters(node):
 
-```
+
 if any(
     char in node
     for char in ("\n", "\r", "\t")
@@ -63,11 +63,11 @@ if any(
     return True
 
 return False
-```
+
 
 def extract_nodes(text):
 
-```
+
 nodes = set()
 
 for protocol in PROTOCOLS:
@@ -107,11 +107,11 @@ for protocol in PROTOCOLS:
         )
 
 return nodes
-```
+
 
 def main():
 
-```
+
 print()
 print("=" * 60)
 print("NODE FILTER")
@@ -215,7 +215,7 @@ print()
 print("=" * 60)
 print("FILTER COMPLETE")
 print("=" * 60)
-```
+
 
 if **name** == "**main**":
 main()
