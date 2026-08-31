@@ -1,52 +1,78 @@
 name: Telegram Node Scraper
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 18 * * *"
+workflow_dispatch:
+
+schedule:
+- cron: "0 18 * * *"
 
 permissions:
-  contents: write
+contents: write
 
 jobs:
-  scrape:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+scrape:
+runs-on: ubuntu-latest
 
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
+```
+steps:
+  - name: Checkout
+    uses: actions/checkout@v5
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
+  - name: Setup Python
+    uses: actions/setup-python@v6
+    with:
+      python-version: "3.12"
 
-      - name: Run Telegram scraper
-        run: |
-          python telegram/telegram_scraper.py
+  - name: Install dependencies
+    run: |
+      python -m pip install --upgrade pip
+      pip install requests
 
-      - name: Show result
-        run: |
-          echo "========== Telegram Nodes =========="
-          if [ -f output/telegram_nodes.txt ]; then
-            wc -l output/telegram_nodes.txt
-            head -20 output/telegram_nodes.txt
-          else
-            echo "没有生成节点文件"
-          fi
+  - name: Check scraper file
+    run: |
+      echo "========== Check files =========="
+      ls -la
+      echo "========== Telegram directory =========="
+      ls -la telegram || true
 
-      - name: Commit results
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add output/telegram_nodes.txt
-          if git diff --cached --quiet; then
-            echo "没有新的节点变化"
-          else
-            git commit -m "Update Telegram nodes"
-            git push
-          fi
+  - name: Run Telegram scraper
+    run: |
+      python telegram/telegram_scraper.py
+
+  - name: Show result
+    run: |
+      echo "========== Output directory =========="
+      ls -la output || true
+
+      echo "========== Telegram Nodes =========="
+
+      if [ -f output/telegram_nodes.txt ]; then
+        echo "文件存在"
+        echo "节点数量:"
+        wc -l output/telegram_nodes.txt
+        echo "前20个节点:"
+        head -20 output/telegram_nodes.txt
+      else
+        echo "telegram_nodes.txt 不存在"
+        echo "暂时没有生成节点文件"
+      fi
+
+  - name: Commit results
+    run: |
+      if [ ! -f output/telegram_nodes.txt ]; then
+        echo "没有节点文件，本次不提交"
+        exit 0
+      fi
+
+      git config user.name "github-actions[bot]"
+      git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      git add output/telegram_nodes.txt
+
+      if git diff --cached --quiet; then
+        echo "没有新的节点变化"
+      else
+        git commit -m "Update Telegram nodes"
+        git push
+      fi
+```
