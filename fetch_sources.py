@@ -42,7 +42,7 @@ if not SOURCES_FILE.exists():
 print("ERROR: sources.txt not found")
 return []
 
-
+```
 sources = []
 
 for line in SOURCES_FILE.read_text(
@@ -60,7 +60,7 @@ for line in SOURCES_FILE.read_text(
     sources.append(line)
 
 return sources
-
+```
 
 def download(url):
 print()
@@ -69,7 +69,7 @@ print("DOWNLOAD")
 print(url)
 print("=" * 60)
 
-
+```
 try:
     response = requests.get(
         url,
@@ -86,13 +86,13 @@ try:
 except Exception as e:
     print("DOWNLOAD ERROR:", repr(e))
     return ""
-
+```
 
 def clean_text(text):
 if not text:
 return ""
 
-
+```
 text = html.unescape(text)
 
 replacements = {
@@ -106,12 +106,12 @@ for old, new in replacements.items():
     text = text.replace(old, new)
 
 return text
-
+```
 
 def clean_node(node):
 node = node.strip()
 
-
+```
 node = node.replace(
     "\\/",
     "/"
@@ -125,12 +125,12 @@ while node and node[-1] in ".,;:)]}":
     node = node[:-1]
 
 return node
-
+```
 
 def extract_nodes(text):
 nodes = set()
 
-
+```
 text = clean_text(text)
 
 if not text:
@@ -162,11 +162,11 @@ for protocol in PROTOCOLS:
             )
 
 return nodes
-
+```
 
 def try_base64_decode(text):
 
-
+```
 if not text:
     return ""
 
@@ -227,11 +227,11 @@ for candidate in candidates:
         continue
 
 return ""
-
+```
 
 def process_github_source(url):
 
-
+```
 text = download(
     url
 )
@@ -273,11 +273,11 @@ print(
 )
 
 return nodes
-
+```
 
 def extract_telegram_payloads(text):
 
-
+```
 payloads = []
 
 clean = clean_text(
@@ -308,11 +308,11 @@ for pattern in patterns:
     )
 
 return payloads
-
+```
 
 def process_telegram_source(url):
 
-
+```
 text = download(
     url
 )
@@ -391,11 +391,11 @@ print(
 )
 
 return nodes
-
+```
 
 def save_nodes(nodes):
 
-
+```
 OUTPUT_DIR.mkdir(
     parents=True,
     exist_ok=True
@@ -444,11 +444,11 @@ print(
     "Nodes:",
     len(result)
 )
-
+```
 
 def main():
 
-
+```
 print()
 print("=" * 60)
 print("FREE AIRPORT NODE COLLECTOR")
@@ -532,7 +532,7 @@ print()
 print("=" * 60)
 print("DONE")
 print("=" * 60)
-
+```
 
 if **name** == "**main**":
 main()
