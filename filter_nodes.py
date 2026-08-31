@@ -17,21 +17,25 @@ def clean_node(node):
 node = node.strip()
 node = node.replace("\/", "/")
 node = node.replace("&", "&")
-node = node.strip(""'<>[](){}")
-node = node.rstrip(".,;:)]}")
+
+
+while node and node[-1] in ".,;:)]}":
+    node = node[:-1]
+
 return node
+
 
 def extract_nodes(text):
 nodes = set()
 
-```
+
 for protocol in PROTOCOLS:
-    pattern = re.escape(protocol) + r"[^\s<>\"'`]+"
+    pattern = re.escape(protocol) + r"[^\s<>]+"
 
     matches = re.findall(
         pattern,
         text,
-        flags=re.IGNORECASE
+        re.IGNORECASE
     )
 
     for node in matches:
@@ -41,14 +45,14 @@ for protocol in PROTOCOLS:
             nodes.add(node)
 
 return nodes
-```
+
 
 def main():
 print("=" * 60)
 print("NODE FILTER")
 print("=" * 60)
 
-```
+
 if not INPUT_FILE.exists():
     print("ERROR: input file not found")
     print(INPUT_FILE)
@@ -97,7 +101,7 @@ print()
 print("=" * 60)
 print("FILTER COMPLETE")
 print("=" * 60)
-```
+
 
 if **name** == "**main**":
 main()
