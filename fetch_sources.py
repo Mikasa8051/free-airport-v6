@@ -16,7 +16,11 @@ TIMEOUT = 30
 
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0"
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0 Safari/537.36"
+    )
 }
 
 
@@ -28,6 +32,11 @@ PROTOCOLS = (
     "hysteria2://",
     "hy2://",
 )
+
+
+TELEGRAM_SOURCES = [
+    "https://t.me/s/ripaojiedian",
+]
 
 
 def load_sources():
@@ -110,7 +119,9 @@ def try_base64_decode(text):
         padding = len(compact) % 4
 
         if padding:
-            compact += "=" * (4 - padding)
+            compact += "=" * (
+                4 - padding
+            )
 
         decoded = base64.b64decode(
             compact,
@@ -142,7 +153,7 @@ def extract_nodes(text):
 
         pattern = (
             re.escape(protocol)
-            + r"[^\s<>\"]+"
+            + r"[^\s<>\"']+"
         )
 
         matches = re.findall(
@@ -156,16 +167,19 @@ def extract_nodes(text):
             node = node.strip()
 
             node = node.rstrip(
-                ".,;:)]}'`"
+                ".,;:)]}`"
             )
 
             if node:
-                nodes.add(node)
+
+                nodes.add(
+                    node
+                )
 
     return nodes
 
 
-def process_source(url):
+def process_github_source(url):
 
     text = download(url)
 
@@ -173,14 +187,18 @@ def process_source(url):
 
         return set()
 
-    nodes = extract_nodes(text)
+    nodes = extract_nodes(
+        text
+    )
 
     print(
         "Plain nodes:",
         len(nodes)
     )
 
-    decoded = try_base64_decode(text)
+    decoded = try_base64_decode(
+        text
+    )
 
     if decoded:
 
@@ -198,7 +216,27 @@ def process_source(url):
         )
 
     print(
-        "TOTAL:",
+        "GitHub source total:",
+        len(nodes)
+    )
+
+    return nodes
+
+
+def process_telegram_source(url):
+
+    text = download(url)
+
+    if not text:
+
+        return set()
+
+    nodes = extract_nodes(
+        text
+    )
+
+    print(
+        "Telegram nodes:",
         len(nodes)
     )
 
@@ -212,7 +250,9 @@ def save_nodes(nodes):
         exist_ok=True
     )
 
-    result = sorted(nodes)
+    result = sorted(
+        nodes
+    )
 
     OUTPUT_FILE.write_text(
         "\n".join(result)
@@ -247,18 +287,28 @@ def main():
     print("FREE AIRPORT NODE COLLECTOR")
     print("=" * 60)
 
-    sources = load_sources()
+    github_sources = load_sources()
 
     print(
-        "Sources:",
-        len(sources)
+        "GitHub sources:",
+        len(github_sources)
+    )
+
+    print(
+        "Telegram sources:",
+        len(TELEGRAM_SOURCES)
     )
 
     all_nodes = set()
 
-    for url in sources:
+    print()
+    print("=" * 60)
+    print("GITHUB SOURCES")
+    print("=" * 60)
 
-        nodes = process_source(
+    for url in github_sources:
+
+        nodes = process_github_source(
             url
         )
 
@@ -266,18 +316,49 @@ def main():
             nodes
         )
 
-    save_nodes(
-        all_nodes
+    print()
+    print("=" * 60)
+    print("TELEGRAM SOURCES")
+    print("=" * 60)
+
+    telegram_nodes = set()
+
+    for url in TELEGRAM_SOURCES:
+
+        nodes = process_telegram_source(
+            url
+        )
+
+        telegram_nodes.update(
+            nodes
+        )
+
+    all_nodes.update(
+        telegram_nodes
     )
 
     print()
     print("=" * 60)
-    print("DONE")
+    print("FINAL RESULT")
     print("=" * 60)
+
+    print(
+        "GitHub nodes:",
+        len(all_nodes - telegram_nodes)
+    )
+
+    print(
+        "Telegram nodes:",
+        len(telegram_nodes)
+    )
 
     print(
         "TOTAL UNIQUE NODES:",
         len(all_nodes)
+    )
+
+    save_nodes(
+        all_nodes
     )
 
 
