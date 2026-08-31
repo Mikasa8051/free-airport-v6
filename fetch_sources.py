@@ -31,6 +31,10 @@ PROTOCOLS = (
 
 TELEGRAM_SOURCES = [
     "https://t.me/s/ripaojiedian",
+    "https://t.me/s/v2nodes",
+    "https://t.me/s/v2ray_free_conf",
+    "https://t.me/s/vpnfail_v2ray",
+    "https://t.me/s/dns68",
 ]
 
 
