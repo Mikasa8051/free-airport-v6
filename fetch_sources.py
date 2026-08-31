@@ -290,12 +290,28 @@ def process_telegram_source(url):
 
     nodes = set()
 
-    for payload in payloads:
+    for index, payload in enumerate(payloads):
 
         payload = clean_text(payload)
 
+        print()
+        print(
+            "----- Telegram payload",
+            index + 1,
+            "-----"
+        )
+
+        preview = payload[:1000]
+
+        print(preview)
+
         direct_nodes = extract_nodes(
             payload
+        )
+
+        print(
+            "Direct nodes:",
+            len(direct_nodes)
         )
 
         nodes.update(
@@ -312,10 +328,16 @@ def process_telegram_source(url):
                 decoded
             )
 
+            print(
+                "Decoded nodes:",
+                len(decoded_nodes)
+            )
+
             nodes.update(
                 decoded_nodes
             )
 
+    print()
     print(
         "Telegram nodes:",
         len(nodes)
