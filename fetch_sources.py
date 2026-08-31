@@ -5,228 +5,369 @@ from pathlib import Path
 
 import requests
 
-
 SOURCES_FILE = Path("sources.txt")
 OUTPUT_DIR = Path("output")
-OUTPUT_FILE = OUTPUT_DIR / "nodes_raw.txt"
+RAW_FILE = OUTPUT_DIR / "nodes_raw.txt"
+FILTERED_FILE = OUTPUT_DIR / "nodes_filtered.txt"
 
 TIMEOUT = 30
 
 HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0 Safari/537.36"
-    )
+"User-Agent": (
+"Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+"AppleWebKit/537.36 (KHTML, like Gecko) "
+"Chrome/124.0 Safari/537.36"
+)
 }
 
 PROTOCOLS = (
-    "vless://",
-    "vmess://",
-    "trojan://",
-    "ss://",
-    "hysteria2://",
-    "hy2://",
+"vless://",
+"vmess://",
+"trojan://",
+"ss://",
+"hysteria2://",
+"hy2://",
 )
 
 TELEGRAM_SOURCES = [
-    "https://t.me/s/ripaojiedian",
-    "https://t.me/s/v2nodes",
-    "https://t.me/s/v2ray_free_conf",
-    "https://t.me/s/vpnfail_v2ray",
-    "https://t.me/s/dns68",
+"https://t.me/s/ripaojiedian",
+"https://t.me/s/v2nodes",
+"https://t.me/s/v2ray_free_conf",
+"https://t.me/s/vpnfail_v2ray",
+"https://t.me/s/dns68",
 ]
 
-
 def load_sources():
-    if not SOURCES_FILE.exists():
-        print("ERROR: sources.txt not found")
-        return []
+if not SOURCES_FILE.exists():
+print("ERROR: sources.txt not found")
+return []
 
-    sources = []
 
-    for line in SOURCES_FILE.read_text(
-        encoding="utf-8"
-    ).splitlines():
+sources = []
 
-        line = line.strip()
+for line in SOURCES_FILE.read_text(
+    encoding="utf-8"
+).splitlines():
 
-        if not line:
-            continue
+    line = line.strip()
 
-        if line.startswith("#"):
-            continue
+    if not line:
+        continue
 
-        sources.append(line)
+    if line.startswith("#"):
+        continue
 
-    return sources
+    sources.append(line)
+
+return sources
 
 
 def download(url):
-    print()
-    print("=" * 60)
-    print("DOWNLOAD")
-    print(url)
-    print("=" * 60)
+print()
+print("=" * 60)
+print("DOWNLOAD")
+print(url)
+print("=" * 60)
 
-    try:
-        response = requests.get(
-            url,
-            headers=HEADERS,
-            timeout=TIMEOUT
-        )
 
-        print("HTTP:", response.status_code)
+try:
+    response = requests.get(
+        url,
+        headers=HEADERS,
+        timeout=TIMEOUT
+    )
 
-        response.raise_for_status()
+    print("HTTP:", response.status_code)
 
-        return response.text
+    response.raise_for_status()
 
-    except Exception as e:
-        print(
-            "DOWNLOAD ERROR:",
-            repr(e)
-        )
+    return response.text
 
-        return ""
+except Exception as e:
+    print("DOWNLOAD ERROR:", repr(e))
+    return ""
 
 
 def clean_text(text):
-    if not text:
-        return ""
+if not text:
+return ""
 
-    text = html.unescape(text)
 
-    text = text.replace(
-        "\\/",
-        "/"
-    )
+text = html.unescape(text)
 
-    text = text.replace(
-        "\\u0026",
-        "&"
-    )
+replacements = {
+    "\\/": "/",
+    "\\u0026": "&",
+    "\\u003d": "=",
+    "\\u002F": "/",
+}
 
-    text = text.replace(
-        "\\u003d",
-        "="
-    )
+for old, new in replacements.items():
+    text = text.replace(old, new)
 
-    text = text.replace(
-        "\\u002F",
-        "/"
-    )
+return text
 
-    return text
+
+def clean_node(node):
+node = node.strip()
+
+
+node = node.replace(
+    "\\/",
+    "/"
+)
+
+node = html.unescape(
+    node
+)
+
+while node and node[-1] in ".,;:)]}":
+    node = node[:-1]
+
+return node
 
 
 def extract_nodes(text):
-    nodes = set()
+nodes = set()
 
-    text = clean_text(text)
 
-    if not text:
-        return nodes
+text = clean_text(text)
 
-    for protocol in PROTOCOLS:
+if not text:
+    return nodes
 
-        pattern = (
-            re.escape(protocol)
-            + r"[^\s<>\"'`]+"
+for protocol in PROTOCOLS:
+
+    pattern = (
+        re.escape(protocol)
+        + r"[^\s<>]+"
+    )
+
+    matches = re.findall(
+        pattern,
+        text,
+        flags=re.IGNORECASE
+    )
+
+    for node in matches:
+
+        node = clean_node(
+            node
         )
 
-        matches = re.findall(
-            pattern,
-            text,
-            flags=re.IGNORECASE
-        )
+        if node:
 
-        for node in matches:
-
-            node = node.strip()
-
-            node = node.rstrip(
-                ".,;:)]}"
+            nodes.add(
+                node
             )
 
-            if node:
-                nodes.add(node)
-
-    return nodes
+return nodes
 
 
 def try_base64_decode(text):
-    if not text:
-        return ""
 
-    candidates = []
 
-    compact = re.sub(
-        r"\s+",
-        "",
-        text.strip()
+if not text:
+    return ""
+
+candidates = []
+
+compact = re.sub(
+    r"\s+",
+    "",
+    text.strip()
+)
+
+if compact:
+    candidates.append(
+        compact
     )
 
-    if compact:
-        candidates.append(compact)
+for line in text.splitlines():
 
-    for line in text.splitlines():
+    line = line.strip()
 
-        line = line.strip()
+    if line:
+        candidates.append(
+            line
+        )
 
-        if line:
-            candidates.append(line)
+for candidate in candidates:
 
-    for candidate in candidates:
+    try:
 
-        try:
+        padding = len(candidate) % 4
 
-            padding = len(candidate) % 4
-
-            if padding:
-                candidate += "=" * (
-                    4 - padding
-                )
-
-            decoded = base64.b64decode(
-                candidate,
-                validate=False
+        if padding:
+            candidate += "=" * (
+                4 - padding
             )
 
-            result = decoded.decode(
-                "utf-8",
-                errors="ignore"
-            )
+        decoded = base64.b64decode(
+            candidate,
+            validate=False
+        )
 
-            result = clean_text(result)
+        result = decoded.decode(
+            "utf-8",
+            errors="ignore"
+        )
 
-            if any(
-                protocol in result.lower()
-                for protocol in PROTOCOLS
-            ):
-                return result
+        result = clean_text(
+            result
+        )
 
-        except Exception:
-            continue
+        if any(
+            protocol in result.lower()
+            for protocol in PROTOCOLS
+        ):
+            return result
 
-    return ""
+    except Exception:
+        continue
+
+return ""
 
 
 def process_github_source(url):
 
-    text = download(url)
 
-    if not text:
-        return set()
+text = download(
+    url
+)
 
-    nodes = extract_nodes(text)
+if not text:
+    return set()
 
-    print(
-        "Plain nodes:",
-        len(nodes)
+nodes = extract_nodes(
+    text
+)
+
+print(
+    "Plain nodes:",
+    len(nodes)
+)
+
+decoded = try_base64_decode(
+    text
+)
+
+if decoded:
+
+    decoded_nodes = extract_nodes(
+        decoded
     )
 
-    decoded = try_base64_decode(text)
+    print(
+        "Base64 nodes:",
+        len(decoded_nodes)
+    )
+
+    nodes.update(
+        decoded_nodes
+    )
+
+print(
+    "GitHub source total:",
+    len(nodes)
+)
+
+return nodes
+
+
+def extract_telegram_payloads(text):
+
+
+payloads = []
+
+clean = clean_text(
+    text
+)
+
+if clean:
+    payloads.append(
+        clean
+    )
+
+patterns = [
+    r'data-content="([^"]+)"',
+    r'data-text="([^"]+)"',
+    r'class="tgme_widget_message_text"[^>]*>(.*?)</div>',
+]
+
+for pattern in patterns:
+
+    matches = re.findall(
+        pattern,
+        text,
+        flags=re.IGNORECASE | re.DOTALL
+    )
+
+    payloads.extend(
+        matches
+    )
+
+return payloads
+
+
+def process_telegram_source(url):
+
+
+text = download(
+    url
+)
+
+if not text:
+    return set()
+
+payloads = extract_telegram_payloads(
+    text
+)
+
+print(
+    "Telegram payloads:",
+    len(payloads)
+)
+
+nodes = set()
+
+for index, payload in enumerate(
+    payloads
+):
+
+    payload = clean_text(
+        payload
+    )
+
+    print()
+    print(
+        "----- Telegram payload",
+        index + 1,
+        "-----"
+    )
+
+    preview = payload[:500]
+
+    print(
+        preview
+    )
+
+    direct_nodes = extract_nodes(
+        payload
+    )
+
+    print(
+        "Direct nodes:",
+        len(direct_nodes)
+    )
+
+    nodes.update(
+        direct_nodes
+    )
+
+    decoded = try_base64_decode(
+        payload
+    )
 
     if decoded:
 
@@ -235,7 +376,7 @@ def process_github_source(url):
         )
 
         print(
-            "Base64 nodes:",
+            "Decoded nodes:",
             len(decoded_nodes)
         )
 
@@ -243,234 +384,155 @@ def process_github_source(url):
             decoded_nodes
         )
 
-    print(
-        "GitHub source total:",
-        len(nodes)
-    )
+print()
+print(
+    "Telegram nodes:",
+    len(nodes)
+)
 
-    return nodes
-
-
-def extract_telegram_payloads(text):
-
-    payloads = []
-
-    clean = clean_text(text)
-
-    payloads.append(clean)
-
-    patterns = [
-        r'data-content="([^"]+)"',
-        r'data-text="([^"]+)"',
-        r'class="tgme_widget_message_text"[^>]*>(.*?)</div>',
-    ]
-
-    for pattern in patterns:
-
-        matches = re.findall(
-            pattern,
-            text,
-            flags=re.IGNORECASE | re.DOTALL
-        )
-
-        payloads.extend(matches)
-
-    return payloads
-
-
-def process_telegram_source(url):
-
-    text = download(url)
-
-    if not text:
-        return set()
-
-    payloads = extract_telegram_payloads(text)
-
-    print(
-        "Telegram payloads:",
-        len(payloads)
-    )
-
-    nodes = set()
-
-    for index, payload in enumerate(payloads):
-
-        payload = clean_text(payload)
-
-        print()
-        print(
-            "----- Telegram payload",
-            index + 1,
-            "-----"
-        )
-
-        preview = payload[:1000]
-
-        print(preview)
-
-        direct_nodes = extract_nodes(
-            payload
-        )
-
-        print(
-            "Direct nodes:",
-            len(direct_nodes)
-        )
-
-        nodes.update(
-            direct_nodes
-        )
-
-        decoded = try_base64_decode(
-            payload
-        )
-
-        if decoded:
-
-            decoded_nodes = extract_nodes(
-                decoded
-            )
-
-            print(
-                "Decoded nodes:",
-                len(decoded_nodes)
-            )
-
-            nodes.update(
-                decoded_nodes
-            )
-
-    print()
-    print(
-        "Telegram nodes:",
-        len(nodes)
-    )
-
-    return nodes
+return nodes
 
 
 def save_nodes(nodes):
 
-    OUTPUT_DIR.mkdir(
-        parents=True,
-        exist_ok=True
-    )
 
-    result = sorted(nodes)
+OUTPUT_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
 
-    OUTPUT_FILE.write_text(
-        "\n".join(result)
-        + (
-            "\n"
-            if result
-            else ""
-        ),
-        encoding="utf-8"
-    )
+result = sorted(
+    nodes
+)
 
-    print()
-    print("=" * 60)
-    print("SAVE RESULT")
-    print("=" * 60)
+RAW_FILE.write_text(
+    "\n".join(result)
+    + (
+        "\n"
+        if result
+        else ""
+    ),
+    encoding="utf-8"
+)
 
-    print(
-        "Output:",
-        OUTPUT_FILE
-    )
+FILTERED_FILE.write_text(
+    "\n".join(result)
+    + (
+        "\n"
+        if result
+        else ""
+    ),
+    encoding="utf-8"
+)
 
-    print(
-        "Nodes:",
-        len(result)
-    )
+print()
+print("=" * 60)
+print("SAVE RESULT")
+print("=" * 60)
+
+print(
+    "Raw output:",
+    RAW_FILE
+)
+
+print(
+    "Filtered output:",
+    FILTERED_FILE
+)
+
+print(
+    "Nodes:",
+    len(result)
+)
 
 
 def main():
 
-    print()
-    print("=" * 60)
-    print("FREE AIRPORT NODE COLLECTOR")
-    print("=" * 60)
 
-    github_sources = load_sources()
+print()
+print("=" * 60)
+print("FREE AIRPORT NODE COLLECTOR")
+print("=" * 60)
 
-    print(
-        "GitHub sources:",
-        len(github_sources)
+github_sources = load_sources()
+
+print(
+    "GitHub sources:",
+    len(github_sources)
+)
+
+print(
+    "Telegram sources:",
+    len(TELEGRAM_SOURCES)
+)
+
+github_nodes = set()
+telegram_nodes = set()
+
+print()
+print("=" * 60)
+print("GITHUB SOURCES")
+print("=" * 60)
+
+for url in github_sources:
+
+    nodes = process_github_source(
+        url
     )
 
-    print(
-        "Telegram sources:",
-        len(TELEGRAM_SOURCES)
+    github_nodes.update(
+        nodes
     )
 
-    github_nodes = set()
-    telegram_nodes = set()
+print()
+print("=" * 60)
+print("TELEGRAM SOURCES")
+print("=" * 60)
 
-    print()
-    print("=" * 60)
-    print("GITHUB SOURCES")
-    print("=" * 60)
+for url in TELEGRAM_SOURCES:
 
-    for url in github_sources:
-
-        nodes = process_github_source(
-            url
-        )
-
-        github_nodes.update(
-            nodes
-        )
-
-    print()
-    print("=" * 60)
-    print("TELEGRAM SOURCES")
-    print("=" * 60)
-
-    for url in TELEGRAM_SOURCES:
-
-        nodes = process_telegram_source(
-            url
-        )
-
-        telegram_nodes.update(
-            nodes
-        )
-
-    all_nodes = (
-        github_nodes
-        | telegram_nodes
+    nodes = process_telegram_source(
+        url
     )
 
-    print()
-    print("=" * 60)
-    print("FINAL RESULT")
-    print("=" * 60)
-
-    print(
-        "GitHub unique nodes:",
-        len(github_nodes)
+    telegram_nodes.update(
+        nodes
     )
 
-    print(
-        "Telegram unique nodes:",
-        len(telegram_nodes)
-    )
+all_nodes = (
+    github_nodes
+    | telegram_nodes
+)
 
-    print(
-        "TOTAL UNIQUE NODES:",
-        len(all_nodes)
-    )
+print()
+print("=" * 60)
+print("FINAL RESULT")
+print("=" * 60)
 
-    save_nodes(
-        all_nodes
-    )
+print(
+    "GitHub unique nodes:",
+    len(github_nodes)
+)
 
-    print()
-    print("=" * 60)
-    print("DONE")
-    print("=" * 60)
+print(
+    "Telegram unique nodes:",
+    len(telegram_nodes)
+)
+
+print(
+    "TOTAL UNIQUE NODES:",
+    len(all_nodes)
+)
+
+save_nodes(
+    all_nodes
+)
+
+print()
+print("=" * 60)
+print("DONE")
+print("=" * 60)
 
 
-if __name__ == "__main__":
-    main()
+if **name** == "**main**":
+main()
