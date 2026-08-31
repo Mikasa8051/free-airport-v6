@@ -36,28 +36,38 @@ jobs:
           echo "NODE RESULT"
           echo "================================"
 
+          echo ""
+          echo "RAW NODES:"
           if [ -f output/nodes_raw.txt ]; then
-            echo "File exists"
-            echo "Node count:"
             wc -l output/nodes_raw.txt
-            echo ""
-            echo "First 10 nodes:"
-            head -10 output/nodes_raw.txt
           else
-            echo "ERROR: output/nodes_raw.txt not found"
+            echo "ERROR: nodes_raw.txt not found"
             exit 1
           fi
+
+          echo ""
+          echo "CLEAN NODES:"
+          if [ -f output/nodes_clean.txt ]; then
+            wc -l output/nodes_clean.txt
+          else
+            echo "ERROR: nodes_clean.txt not found"
+            exit 1
+          fi
+
+          echo ""
+          echo "First 10 clean nodes:"
+          head -10 output/nodes_clean.txt
 
       - name: Commit result
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add output/nodes_raw.txt
+          git add output/nodes_raw.txt output/nodes_clean.txt
 
           if git diff --cached --quiet; then
             echo "No changes"
           else
-            git commit -m "Update raw nodes"
+            git commit -m "Update node lists"
             git push
           fi
