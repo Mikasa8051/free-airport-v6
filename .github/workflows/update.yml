@@ -31,6 +31,12 @@ jobs:
         run: |
           python fetch_sources.py
 
+
+      - name: Filter nodes
+        run: |
+          python filter_nodes.py    
+
+
       - name: Show result
         run: |
           echo "================================"
