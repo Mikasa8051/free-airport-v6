@@ -30,6 +30,10 @@ jobs:
         run: |
           python fetch_sources.py
 
+      - name: Prepare test nodes
+        run: |
+          python prepare_nodes.py
+
       - name: Show result
         run: |
           echo "================================"
