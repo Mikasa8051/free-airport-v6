@@ -5,3 +5,9 @@ https://raw.githubusercontent.com/peasoft/NoMoreWalls/master/list.txt
 https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/main/V2Ray-Config-By-EbraSha.txt
 
 https://raw.githubusercontent.com/zhuhaiuk/free-nodes/main/nodes.txt
+
+https://raw.githubusercontent.com/mfuu/v2ray/master/v2ray
+
+https://github.com/Au1rxx/free-vpn-subscriptions/raw/main/output/v2ray-base64.txt
+
+https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/V2Ray-Config-By-EbraSha.txt
