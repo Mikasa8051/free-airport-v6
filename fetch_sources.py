@@ -5,466 +5,52 @@ from pathlib import Path
 
 import requests
 
-SOURCES_FILE = Path("sources.txt")
-OUTPUT_DIR = Path("output")
-RAW_FILE = OUTPUT_DIR / "nodes_raw.txt"
-FILTERED_FILE = OUTPUT_DIR / "nodes_filtered.txt"
+sources_file = Path("sources.txt")
+output_dir = Path("output")
+raw_file = output_dir / "nodes_raw.txt"
+filtered_file = output_dir / "nodes_filtered.txt"
 
-TIMEOUT = 30
-
-HEADERS = {
-"User-Agent": (
-"Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-"AppleWebKit/537.36 (KHTML, like Gecko) "
-"Chrome/124.0 Safari/537.36"
-)
-}
-
-PROTOCOLS = (
-"vless://",
-"vmess://",
-"trojan://",
-"ss://",
-"hysteria2://",
-"hy2://",
-)
-
-TELEGRAM_SOURCES = [
-"https://t.me/s/ripaojiedian",
-"https://t.me/s/v2nodes",
-"https://t.me/s/v2ray_free_conf",
-"https://t.me/s/vpnfail_v2ray",
-"https://t.me/s/dns68",
+protocols = [
+    "vless://",
+    "vmess://",
+    "trojan://",
+    "ss://",
+    "hysteria2://",
+    "hy2://"
 ]
 
-def load_sources():
-if not SOURCES_FILE.exists():
-print("ERROR: sources.txt not found")
-return []
-
-```
-sources = []
-
-for line in SOURCES_FILE.read_text(
-    encoding="utf-8"
-).splitlines():
-
-    line = line.strip()
-
-    if not line:
-        continue
-
-    if line.startswith("#"):
-        continue
-
-    sources.append(line)
-
-return sources
-```
-
-def download(url):
-print()
-print("=" * 60)
-print("DOWNLOAD")
-print(url)
-print("=" * 60)
-
-```
-try:
-    response = requests.get(
-        url,
-        headers=HEADERS,
-        timeout=TIMEOUT
-    )
-
-    print("HTTP:", response.status_code)
-
-    response.raise_for_status()
-
-    return response.text
-
-except Exception as e:
-    print("DOWNLOAD ERROR:", repr(e))
-    return ""
-```
-
-def clean_text(text):
-if not text:
-return ""
-
-```
-text = html.unescape(text)
-
-replacements = {
-    "\\/": "/",
-    "\\u0026": "&",
-    "\\u003d": "=",
-    "\\u002F": "/",
-}
-
-for old, new in replacements.items():
-    text = text.replace(old, new)
-
-return text
-```
-
-def clean_node(node):
-node = node.strip()
-
-```
-node = node.replace(
-    "\\/",
-    "/"
-)
-
-node = html.unescape(
-    node
-)
-
-while node and node[-1] in ".,;:)]}":
-    node = node[:-1]
-
-return node
-```
-
-def extract_nodes(text):
-nodes = set()
-
-```
-text = clean_text(text)
-
-if not text:
-    return nodes
-
-for protocol in PROTOCOLS:
-
-    pattern = (
-        re.escape(protocol)
-        + r"[^\s<>]+"
-    )
-
-    matches = re.findall(
-        pattern,
-        text,
-        flags=re.IGNORECASE
-    )
-
-    for node in matches:
-
-        node = clean_node(
-            node
-        )
-
-        if node:
-
-            nodes.add(
-                node
-            )
-
-return nodes
-```
-
-def try_base64_decode(text):
-
-```
-if not text:
-    return ""
-
-candidates = []
-
-compact = re.sub(
-    r"\s+",
-    "",
-    text.strip()
-)
-
-if compact:
-    candidates.append(
-        compact
-    )
-
-for line in text.splitlines():
-
-    line = line.strip()
-
-    if line:
-        candidates.append(
-            line
-        )
-
-for candidate in candidates:
-
-    try:
-
-        padding = len(candidate) % 4
-
-        if padding:
-            candidate += "=" * (
-                4 - padding
-            )
-
-        decoded = base64.b64decode(
-            candidate,
-            validate=False
-        )
-
-        result = decoded.decode(
-            "utf-8",
-            errors="ignore"
-        )
-
-        result = clean_text(
-            result
-        )
-
-        if any(
-            protocol in result.lower()
-            for protocol in PROTOCOLS
-        ):
-            return result
-
-    except Exception:
-        continue
-
-return ""
-```
-
-def process_github_source(url):
-
-```
-text = download(
-    url
-)
-
-if not text:
-    return set()
-
-nodes = extract_nodes(
-    text
-)
-
-print(
-    "Plain nodes:",
-    len(nodes)
-)
-
-decoded = try_base64_decode(
-    text
-)
-
-if decoded:
-
-    decoded_nodes = extract_nodes(
-        decoded
-    )
-
-    print(
-        "Base64 nodes:",
-        len(decoded_nodes)
-    )
-
-    nodes.update(
-        decoded_nodes
-    )
-
-print(
-    "GitHub source total:",
-    len(nodes)
-)
-
-return nodes
-```
-
-def extract_telegram_payloads(text):
-
-```
-payloads = []
-
-clean = clean_text(
-    text
-)
-
-if clean:
-    payloads.append(
-        clean
-    )
-
-patterns = [
-    r'data-content="([^"]+)"',
-    r'data-text="([^"]+)"',
-    r'class="tgme_widget_message_text"[^>]*>(.*?)</div>',
+telegram_sources = [
+    "https://t.me/s/ripaojiedian",
+    "https://t.me/s/v2nodes",
+    "https://t.me/s/v2ray_free_conf",
+    "https://t.me/s/vpnfail_v2ray",
+    "https://t.me/s/dns68"
 ]
 
-for pattern in patterns:
+headers = {
+    "User-Agent": "Mozilla/5.0"
+}
 
-    matches = re.findall(
-        pattern,
-        text,
-        flags=re.IGNORECASE | re.DOTALL
-    )
-
-    payloads.extend(
-        matches
-    )
-
-return payloads
-```
-
-def process_telegram_source(url):
-
-```
-text = download(
-    url
-)
-
-if not text:
-    return set()
-
-payloads = extract_telegram_payloads(
-    text
-)
-
-print(
-    "Telegram payloads:",
-    len(payloads)
-)
-
-nodes = set()
-
-for index, payload in enumerate(
-    payloads
-):
-
-    payload = clean_text(
-        payload
-    )
-
-    print()
-    print(
-        "----- Telegram payload",
-        index + 1,
-        "-----"
-    )
-
-    preview = payload[:500]
-
-    print(
-        preview
-    )
-
-    direct_nodes = extract_nodes(
-        payload
-    )
-
-    print(
-        "Direct nodes:",
-        len(direct_nodes)
-    )
-
-    nodes.update(
-        direct_nodes
-    )
-
-    decoded = try_base64_decode(
-        payload
-    )
-
-    if decoded:
-
-        decoded_nodes = extract_nodes(
-            decoded
-        )
-
-        print(
-            "Decoded nodes:",
-            len(decoded_nodes)
-        )
-
-        nodes.update(
-            decoded_nodes
-        )
-
-print()
-print(
-    "Telegram nodes:",
-    len(nodes)
-)
-
-return nodes
-```
-
-def save_nodes(nodes):
-
-```
-OUTPUT_DIR.mkdir(
-    parents=True,
-    exist_ok=True
-)
-
-result = sorted(
-    nodes
-)
-
-RAW_FILE.write_text(
-    "\n".join(result)
-    + (
-        "\n"
-        if result
-        else ""
-    ),
-    encoding="utf-8"
-)
-
-FILTERED_FILE.write_text(
-    "\n".join(result)
-    + (
-        "\n"
-        if result
-        else ""
-    ),
-    encoding="utf-8"
-)
-
-print()
-print("=" * 60)
-print("SAVE RESULT")
-print("=" * 60)
-
-print(
-    "Raw output:",
-    RAW_FILE
-)
-
-print(
-    "Filtered output:",
-    FILTERED_FILE
-)
-
-print(
-    "Nodes:",
-    len(result)
-)
-```
-
-def main():
-
-```
-print()
 print("=" * 60)
 print("FREE AIRPORT NODE COLLECTOR")
 print("=" * 60)
 
-github_sources = load_sources()
+sources = []
 
-print(
-    "GitHub sources:",
-    len(github_sources)
-)
+if sources_file.exists():
+    text = sources_file.read_text(
+        encoding="utf-8",
+        errors="ignore"
+    )
 
-print(
-    "Telegram sources:",
-    len(TELEGRAM_SOURCES)
-)
+    for line in text.splitlines():
+        line = line.strip()
+
+        if line and not line.startswith("#"):
+            sources.append(line)
+
+print("GitHub sources:", len(sources))
+print("Telegram sources:", len(telegram_sources))
 
 github_nodes = set()
 telegram_nodes = set()
@@ -474,30 +60,192 @@ print("=" * 60)
 print("GITHUB SOURCES")
 print("=" * 60)
 
-for url in github_sources:
+for url in sources:
 
-    nodes = process_github_source(
-        url
-    )
+    print()
+    print("DOWNLOAD")
+    print(url)
 
-    github_nodes.update(
-        nodes
-    )
+    try:
+        response = requests.get(
+            url,
+            headers=headers,
+            timeout=30
+        )
+
+        print("HTTP:", response.status_code)
+
+        response.raise_for_status()
+
+        text = html.unescape(
+            response.text
+        )
+
+        text = text.replace(
+            "\\/",
+            "/"
+        )
+
+        found = set()
+
+        for protocol in protocols:
+
+            pattern = (
+                re.escape(protocol)
+                + r"[^\s<>]+"
+            )
+
+            matches = re.findall(
+                pattern,
+                text,
+                re.IGNORECASE
+            )
+
+            for node in matches:
+                node = node.strip()
+                node = node.rstrip(".,;:)]}")
+
+                if node:
+                    found.add(node)
+
+        print(
+            "Plain nodes:",
+            len(found)
+        )
+
+        compact = re.sub(
+            r"\s+",
+            "",
+            text
+        )
+
+        try:
+            padding = len(compact) % 4
+
+            if padding:
+                compact += "=" * (
+                    4 - padding
+                )
+
+            decoded = base64.b64decode(
+                compact,
+                validate=False
+            ).decode(
+                "utf-8",
+                errors="ignore"
+            )
+
+            for protocol in protocols:
+
+                pattern = (
+                    re.escape(protocol)
+                    + r"[^\s<>]+"
+                )
+
+                matches = re.findall(
+                    pattern,
+                    decoded,
+                    re.IGNORECASE
+                )
+
+                for node in matches:
+                    node = node.strip()
+                    node = node.rstrip(".,;:)]}")
+
+                    if node:
+                        found.add(node)
+
+        except Exception:
+            pass
+
+        print(
+            "GitHub source total:",
+            len(found)
+        )
+
+        github_nodes.update(
+            found
+        )
+
+    except Exception as e:
+
+        print(
+            "DOWNLOAD ERROR:",
+            repr(e)
+        )
 
 print()
 print("=" * 60)
 print("TELEGRAM SOURCES")
 print("=" * 60)
 
-for url in TELEGRAM_SOURCES:
+for url in telegram_sources:
 
-    nodes = process_telegram_source(
-        url
-    )
+    print()
+    print("DOWNLOAD")
+    print(url)
 
-    telegram_nodes.update(
-        nodes
-    )
+    try:
+        response = requests.get(
+            url,
+            headers=headers,
+            timeout=30
+        )
+
+        print(
+            "HTTP:",
+            response.status_code
+        )
+
+        response.raise_for_status()
+
+        text = html.unescape(
+            response.text
+        )
+
+        text = text.replace(
+            "\\/",
+            "/"
+        )
+
+        found = set()
+
+        for protocol in protocols:
+
+            pattern = (
+                re.escape(protocol)
+                + r"[^\s<>]+"
+            )
+
+            matches = re.findall(
+                pattern,
+                text,
+                re.IGNORECASE
+            )
+
+            for node in matches:
+
+                node = node.strip()
+                node = node.rstrip(".,;:)]}")
+
+                if node:
+                    found.add(node)
+
+        print(
+            "Telegram nodes:",
+            len(found)
+        )
+
+        telegram_nodes.update(
+            found
+        )
+
+    except Exception as e:
+
+        print(
+            "TELEGRAM ERROR:",
+            repr(e)
+        )
 
 all_nodes = (
     github_nodes
@@ -524,15 +272,57 @@ print(
     len(all_nodes)
 )
 
-save_nodes(
+output_dir.mkdir(
+    parents=True,
+    exist_ok=True
+)
+
+result = sorted(
     all_nodes
+)
+
+raw_file.write_text(
+    "\n".join(result)
+    + ("\n" if result else ""),
+    encoding="utf-8"
+)
+
+filtered = []
+
+for node in result:
+
+    if node.startswith(
+        tuple(protocols)
+    ):
+        filtered.append(
+            node
+        )
+
+filtered_file.write_text(
+    "\n".join(filtered)
+    + ("\n" if filtered else ""),
+    encoding="utf-8"
 )
 
 print()
 print("=" * 60)
-print("DONE")
+print("SAVE RESULT")
 print("=" * 60)
-```
 
-if **name** == "**main**":
-main()
+print(
+    "Raw:",
+    raw_file
+)
+
+print(
+    "Filtered:",
+    filtered_file
+)
+
+print(
+    "Nodes:",
+    len(filtered)
+)
+
+print()
+print("DONE")
