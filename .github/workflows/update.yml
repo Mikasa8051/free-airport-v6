@@ -1,23 +1,14 @@
 name: Update Free Nodes
 
 on:
-   workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
-
-
-test:
+  test:
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
-
-  - name: Test
-    run: |
-      echo "================================"
-      echo "FREE AIRPORT ACTION TEST"
-      echo "================================"
-      echo "GitHub Actions is working!"
-      echo "================================"
-
+      - name: Test
+        run: echo "GitHub Actions is working!"
