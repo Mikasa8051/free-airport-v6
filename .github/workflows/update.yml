@@ -26,15 +26,19 @@ jobs:
 
       - name: Install sing-box
         run: |
-          sudo apt-get update
-          sudo apt-get install -y sing-box
+          echo "================================"
+          echo "INSTALL SING-BOX"
+          echo "================================"
 
+          curl -fsSL https://sing-box.app/install.sh | sh
+
+          echo ""
           echo "================================"
           echo "SING-BOX VERSION"
           echo "================================"
 
           sing-box version
-
+          
       - name: Fetch sources
         run: |
           python fetch_sources.py
