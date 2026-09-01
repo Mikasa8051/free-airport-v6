@@ -1,4 +1,3 @@
-import base64
 import json
 import socket
 import subprocess
@@ -20,32 +19,7 @@ LOCAL_PORT = 10808
 TEST_URL = "https://www.gstatic.com/generate_204"
 
 TIMEOUT = 8
-
 MAX_TEST_NODES = 200
-
-def decode_base64_text(value):
-value = value.strip()
-
-```
-if not value:
-    return ""
-
-try:
-    padding = len(value) % 4
-
-    if padding:
-        value += "=" * (4 - padding)
-
-    decoded = base64.urlsafe_b64decode(value)
-
-    return decoded.decode(
-        "utf-8",
-        errors="ignore"
-    )
-
-except Exception:
-    return ""
-```
 
 def parse_ss(node):
 node = node.strip()
@@ -57,96 +31,24 @@ if not node.lower().startswith("ss://"):
 try:
     parsed = urlparse(node)
 
-    userinfo = parsed.username
-    password = parsed.password
-
     host = parsed.hostname
     port = parsed.port
-
-    if (
-        userinfo
-        and password
-        and host
-        and port
-    ):
-        return {
-            "server": host,
-            "server_port": port,
-            "method": unquote(userinfo),
-            "password": unquote(password),
-        }
-
-    payload = parsed.netloc
-
-    if "@" not in payload:
-        decoded = decode_base64_text(payload)
-
-        if decoded:
-            payload = decoded
-
-    if "@" not in payload:
-        return None
-
-    credentials, server_part = payload.rsplit(
-        "@",
-        1
-    )
-
-    if ":" not in credentials:
-        return None
-
-    method, password = credentials.split(
-        ":",
-        1
-    )
-
-    method = unquote(method)
-    password = unquote(password)
-
-    if server_part.startswith("["):
-        end_bracket = server_part.find("]")
-
-        if end_bracket == -1:
-            return None
-
-        host = server_part[
-            1:end_bracket
-        ]
-
-        remaining = server_part[
-            end_bracket + 1:
-        ]
-
-        if not remaining.startswith(":"):
-            return None
-
-        port = int(
-            remaining[1:]
-        )
-
-    else:
-        if ":" not in server_part:
-            return None
-
-        host, port_text = server_part.rsplit(
-            ":",
-            1
-        )
-
-        port = int(port_text)
 
     if not host or not port:
         return None
 
-    if port < 1 or port > 65535:
-        return None
+    if parsed.username and parsed.password:
+        method = unquote(parsed.username)
+        password = unquote(parsed.password)
 
-    return {
-        "server": host,
-        "server_port": port,
-        "method": method,
-        "password": password,
-    }
+        return {
+            "server": host,
+            "server_port": port,
+            "method": method,
+            "password": password,
+        }
+
+    return None
 
 except Exception:
     return None
@@ -187,10 +89,7 @@ config = {
 }
 
 config_path.write_text(
-    json.dumps(
-        config,
-        indent=2
-    ),
+    json.dumps(config, indent=2),
     encoding="utf-8"
 )
 
@@ -206,10 +105,7 @@ for _ in range(20):
 
     try:
         with socket.create_connection(
-            (
-                LOCAL_HOST,
-                LOCAL_PORT
-            ),
+            (LOCAL_HOST, LOCAL_PORT),
             timeout=1
         ):
             return True
@@ -222,14 +118,8 @@ return False
 
 def test_proxy():
 proxies = {
-"http": (
-"socks5h://"
-f"{LOCAL_HOST}:{LOCAL_PORT}"
-),
-"https": (
-"socks5h://"
-f"{LOCAL_HOST}:{LOCAL_PORT}"
-),
+"http": f"socks5h://{LOCAL_HOST}:{LOCAL_PORT}",
+"https": f"socks5h://{LOCAL_HOST}:{LOCAL_PORT}"
 }
 
 ```
@@ -253,15 +143,9 @@ def test_one_node(node):
 with tempfile.TemporaryDirectory() as temp_dir:
 
 ```
-    config_path = (
-        Path(temp_dir)
-        / "config.json"
-    )
+    config_path = Path(temp_dir) / "config.json"
 
-    if not create_config(
-        node,
-        config_path
-    ):
+    if not create_config(node, config_path):
         return False
 
     process = subprocess.Popen(
@@ -285,20 +169,18 @@ with tempfile.TemporaryDirectory() as temp_dir:
         process.terminate()
 
         try:
-            process.wait(
-                timeout=3
-            )
+            process.wait(timeout=3)
+
         except subprocess.TimeoutExpired:
             process.kill()
 
             try:
-                process.wait(
-                    timeout=2
-                )
+                process.wait(timeout=2)
+
             except Exception:
                 pass
 
-        time.sleep(0.2)
+    time.sleep(0.2)
 ```
 
 def main():
@@ -308,11 +190,7 @@ print("=" * 60)
 
 ```
 if not INPUT_FILE.exists():
-    print(
-        "ERROR:",
-        INPUT_FILE,
-        "not found"
-    )
+    print("ERROR:", INPUT_FILE, "not found")
     raise SystemExit(1)
 
 all_nodes = []
@@ -329,10 +207,7 @@ for line in INPUT_FILE.read_text(
     if node.lower().startswith("ss://"):
         all_nodes.append(node)
 
-print(
-    "SS nodes found:",
-    len(all_nodes)
-)
+print("SS nodes found:", len(all_nodes))
 
 if not all_nodes:
     OUTPUT_FILE.parent.mkdir(
@@ -350,18 +225,12 @@ if not all_nodes:
 
 nodes = all_nodes[:MAX_TEST_NODES]
 
-print(
-    "SS nodes selected:",
-    len(nodes)
-)
+print("SS nodes selected:", len(nodes))
 
 alive = []
 invalid = 0
 
-for index, node in enumerate(
-    nodes,
-    1
-):
+for index, node in enumerate(nodes, 1):
 
     data = parse_ss(node)
 
@@ -375,8 +244,8 @@ for index, node in enumerate(
 
     print(
         f"[{index}/{len(nodes)}] "
-        f"{data['server']}:{data['server_port']}",
-        end=" ",
+        f"{data['server']}:{data['server_port']} ",
+        end="",
         flush=True
     )
 
@@ -393,23 +262,15 @@ OUTPUT_FILE.parent.mkdir(
 
 OUTPUT_FILE.write_text(
     "\n".join(alive)
-    + (
-        "\n"
-        if alive
-        else ""
-    ),
+    + ("\n" if alive else ""),
     encoding="utf-8"
 )
 
 tested = len(nodes)
 dead = tested - len(alive) - invalid
 
-if tested:
-    rate = (
-        len(alive)
-        / tested
-        * 100
-    )
+if tested > 0:
+    rate = len(alive) / tested * 100
 else:
     rate = 0
 
@@ -418,45 +279,14 @@ print("=" * 60)
 print("SS FINAL RESULT")
 print("=" * 60)
 
-print(
-    "SS nodes found:",
-    len(all_nodes)
-)
-
-print(
-    "Selected:",
-    len(nodes)
-)
-
-print(
-    "Tested:",
-    tested
-)
-
-print(
-    "Proxy Alive:",
-    len(alive)
-)
-
-print(
-    "Dead:",
-    dead
-)
-
-print(
-    "Invalid:",
-    invalid
-)
-
-print(
-    "Success rate:",
-    f"{rate:.1f}%"
-)
-
-print(
-    "Output:",
-    OUTPUT_FILE
-)
+print("SS nodes found:", len(all_nodes))
+print("Selected:", len(nodes))
+print("Tested:", tested)
+print("Proxy Alive:", len(alive))
+print("Dead:", dead)
+print("Invalid:", invalid)
+print("Success rate:", f"{rate:.1f}%")
+print("Output:", OUTPUT_FILE)
 
 print("=" * 60)
 ```
