@@ -24,7 +24,7 @@ MAX_TEST_NODES = 200
 def parse_ss(node):
 node = node.strip()
 
-```
+
 if not node.lower().startswith("ss://"):
     return None
 
@@ -52,12 +52,12 @@ try:
 
 except Exception:
     return None
-```
+
 
 def create_config(node, config_path):
 data = parse_ss(node)
 
-```
+
 if not data:
     return False
 
@@ -94,12 +94,12 @@ config_path.write_text(
 )
 
 return True
-```
+
 
 def wait_for_socks(process):
 for _ in range(20):
 
-```
+
     if process.poll() is not None:
         return False
 
@@ -114,7 +114,7 @@ for _ in range(20):
         time.sleep(0.25)
 
 return False
-```
+
 
 def test_proxy():
 proxies = {
@@ -122,7 +122,7 @@ proxies = {
 "https": f"socks5h://{LOCAL_HOST}:{LOCAL_PORT}"
 }
 
-```
+
 try:
     response = requests.get(
         TEST_URL,
@@ -137,12 +137,12 @@ try:
 
 except Exception:
     return False
-```
+
 
 def test_one_node(node):
 with tempfile.TemporaryDirectory() as temp_dir:
 
-```
+
     config_path = Path(temp_dir) / "config.json"
 
     if not create_config(node, config_path):
@@ -160,18 +160,21 @@ with tempfile.TemporaryDirectory() as temp_dir:
     )
 
     try:
+
         if not wait_for_socks(process):
             return False
 
         return test_proxy()
 
     finally:
+
         process.terminate()
 
         try:
             process.wait(timeout=3)
 
         except subprocess.TimeoutExpired:
+
             process.kill()
 
             try:
@@ -181,16 +184,23 @@ with tempfile.TemporaryDirectory() as temp_dir:
                 pass
 
     time.sleep(0.2)
-```
+
 
 def main():
+
+
 print("=" * 60)
 print("SHADOWSOCKS BATCH TEST")
 print("=" * 60)
 
-```
 if not INPUT_FILE.exists():
-    print("ERROR:", INPUT_FILE, "not found")
+
+    print(
+        "ERROR:",
+        INPUT_FILE,
+        "not found"
+    )
+
     raise SystemExit(1)
 
 all_nodes = []
@@ -205,11 +215,16 @@ for line in INPUT_FILE.read_text(
         continue
 
     if node.lower().startswith("ss://"):
+
         all_nodes.append(node)
 
-print("SS nodes found:", len(all_nodes))
+print(
+    "SS nodes found:",
+    len(all_nodes)
+)
 
 if not all_nodes:
+
     OUTPUT_FILE.parent.mkdir(
         parents=True,
         exist_ok=True
@@ -221,25 +236,34 @@ if not all_nodes:
     )
 
     print("No SS nodes found")
+
     return
 
 nodes = all_nodes[:MAX_TEST_NODES]
 
-print("SS nodes selected:", len(nodes))
+print(
+    "SS nodes selected:",
+    len(nodes)
+)
 
 alive = []
 invalid = 0
 
-for index, node in enumerate(nodes, 1):
+for index, node in enumerate(
+    nodes,
+    1
+):
 
     data = parse_ss(node)
 
     if not data:
+
         print(
             f"[{index}/{len(nodes)}] INVALID"
         )
 
         invalid += 1
+
         continue
 
     print(
@@ -250,9 +274,13 @@ for index, node in enumerate(nodes, 1):
     )
 
     if test_one_node(node):
+
         print("PROXY ALIVE")
+
         alive.append(node)
+
     else:
+
         print("DEAD")
 
 OUTPUT_FILE.parent.mkdir(
@@ -262,34 +290,82 @@ OUTPUT_FILE.parent.mkdir(
 
 OUTPUT_FILE.write_text(
     "\n".join(alive)
-    + ("\n" if alive else ""),
+    + (
+        "\n"
+        if alive
+        else ""
+    ),
     encoding="utf-8"
 )
 
 tested = len(nodes)
-dead = tested - len(alive) - invalid
+
+dead = (
+    tested
+    - len(alive)
+    - invalid
+)
 
 if tested > 0:
-    rate = len(alive) / tested * 100
+
+    rate = (
+        len(alive)
+        / tested
+        * 100
+    )
+
 else:
+
     rate = 0
 
 print()
+
 print("=" * 60)
 print("SS FINAL RESULT")
 print("=" * 60)
 
-print("SS nodes found:", len(all_nodes))
-print("Selected:", len(nodes))
-print("Tested:", tested)
-print("Proxy Alive:", len(alive))
-print("Dead:", dead)
-print("Invalid:", invalid)
-print("Success rate:", f"{rate:.1f}%")
-print("Output:", OUTPUT_FILE)
+print(
+    "SS nodes found:",
+    len(all_nodes)
+)
+
+print(
+    "Selected:",
+    len(nodes)
+)
+
+print(
+    "Tested:",
+    tested
+)
+
+print(
+    "Proxy Alive:",
+    len(alive)
+)
+
+print(
+    "Dead:",
+    dead
+)
+
+print(
+    "Invalid:",
+    invalid
+)
+
+print(
+    "Success rate:",
+    f"{rate:.1f}%"
+)
+
+print(
+    "Output:",
+    OUTPUT_FILE
+)
 
 print("=" * 60)
-```
+
 
 if **name** == "**main**":
 main()
