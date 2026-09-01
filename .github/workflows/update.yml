@@ -38,7 +38,7 @@ jobs:
           echo "================================"
 
           sing-box version
-          
+
       - name: Fetch sources
         run: |
           python fetch_sources.py
