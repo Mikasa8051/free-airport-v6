@@ -1,21 +1,26 @@
 import json
-import os
 import subprocess
 import tempfile
 import time
-import urllib.request
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+import requests
+
 
 INPUT_FILE = Path("output/nodes_alive.txt")
+OUTPUT_FILE = Path("output/ss_alive.txt")
 
-SING_BOX = Path("/usr/local/bin/sing-box")
+SING_BOX = "sing-box"
 
 LOCAL_HOST = "127.0.0.1"
 LOCAL_PORT = 10808
 
-TIMEOUT = 10
+TEST_URL = "https://www.gstatic.com/generate_204"
+
+TIMEOUT = 8
+
+MAX_TEST_NODES = 200
 
 
 def parse_ss(node):
@@ -75,7 +80,10 @@ def create_config(node, config_path):
                 "method": data["method"],
                 "password": data["password"]
             }
-        ]
+        ],
+        "route": {
+            "final": "proxy"
+        }
     }
 
     config_path.write_text(
@@ -89,58 +97,97 @@ def create_config(node, config_path):
     return True
 
 
-def wait_for_port():
-    for _ in range(30):
+def wait_for_socks():
+    import socket
 
+    for _ in range(20):
         try:
-            import socket
-
             with socket.create_connection(
                 (LOCAL_HOST, LOCAL_PORT),
                 timeout=1
             ):
                 return True
-
         except Exception:
-            time.sleep(0.5)
+            time.sleep(0.25)
 
     return False
 
 
 def test_proxy():
-    proxy_handler = urllib.request.ProxyHandler(
-        {
-            "http": f"socks5://{LOCAL_HOST}:{LOCAL_PORT}",
-            "https": f"socks5://{LOCAL_HOST}:{LOCAL_PORT}"
-        }
-    )
-
-    opener = urllib.request.build_opener(
-        proxy_handler
-    )
-
-    request = urllib.request.Request(
-        "https://www.gstatic.com/generate_204",
-        headers={
-            "User-Agent": "free-airport-v6"
-        }
-    )
+    proxies = {
+        "http": (
+            f"socks5h://"
+            f"{LOCAL_HOST}:{LOCAL_PORT}"
+        ),
+        "https": (
+            f"socks5h://"
+            f"{LOCAL_HOST}:{LOCAL_PORT}"
+        ),
+    }
 
     try:
-        response = opener.open(
-            request,
-            timeout=TIMEOUT
+        response = requests.get(
+            TEST_URL,
+            proxies=proxies,
+            timeout=TIMEOUT,
+            headers={
+                "User-Agent": "free-airport-v6"
+            }
         )
 
-        return response.status == 204
+        return response.status_code == 204
 
     except Exception:
         return False
 
 
+def test_one_node(node):
+    with tempfile.TemporaryDirectory() as temp_dir:
+
+        config_path = (
+            Path(temp_dir)
+            / "config.json"
+        )
+
+        if not create_config(
+            node,
+            config_path
+        ):
+            return False
+
+        process = subprocess.Popen(
+            [
+                SING_BOX,
+                "run",
+                "-c",
+                str(config_path)
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        try:
+            if not wait_for_socks():
+                return False
+
+            return test_proxy()
+
+        finally:
+            process.terminate()
+
+            try:
+                process.wait(
+                    timeout=3
+                )
+            except subprocess.TimeoutExpired:
+                process.kill()
+
+        time.sleep(0.2)
+
+
 def main():
     print("=" * 60)
-    print("SING-BOX SHADOWSOCKS TEST")
+    print("SHADOWSOCKS BATCH TEST")
     print("=" * 60)
 
     if not INPUT_FILE.exists():
@@ -148,13 +195,6 @@ def main():
             "ERROR:",
             INPUT_FILE,
             "not found"
-        )
-        raise SystemExit(1)
-
-    if not SING_BOX.exists():
-        print(
-            "ERROR: sing-box not found:",
-            SING_BOX
         )
         raise SystemExit(1)
 
@@ -166,93 +206,116 @@ def main():
 
         node = line.strip()
 
+        if not node:
+            continue
+
         if node.lower().startswith("ss://"):
             nodes.append(node)
 
-    print("SS nodes:", len(nodes))
+    print(
+        "SS nodes found:",
+        len(nodes)
+    )
 
     if not nodes:
         print("No SS nodes found")
-        raise SystemExit(0)
+        OUTPUT_FILE.write_text(
+            "",
+            encoding="utf-8"
+        )
+        return
 
-    node = nodes[0]
+    nodes = nodes[:MAX_TEST_NODES]
 
-    print()
-    print("Testing first SS node")
+    print(
+        "SS nodes selected:",
+        len(nodes)
+    )
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    alive = []
 
-        config_path = Path(temp_dir) / "config.json"
-
-        if not create_config(
-            node,
-            config_path
-        ):
-            print("ERROR: invalid SS node")
-            raise SystemExit(1)
-
-        print("Config created")
-
-        process = subprocess.Popen(
-            [
-                str(SING_BOX),
-                "run",
-                "-c",
-                str(config_path)
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
+    for index, node in enumerate(
+        nodes,
+        1
+    ):
+        print(
+            f"[{index}/{len(nodes)}]",
+            end=" ",
+            flush=True
         )
 
-        try:
-            if not wait_for_port():
-                print(
-                    "ERROR: local SOCKS port did not start"
-                )
+        data = parse_ss(node)
 
-                stderr = process.stderr.read()
+        if not data:
+            print("INVALID")
+            continue
 
-                if stderr:
-                    print(stderr)
+        print(
+            f"{data['server']}:{data['server_port']}",
+            end=" "
+        )
 
-                raise SystemExit(1)
+        if test_one_node(node):
+            print("PROXY ALIVE")
+            alive.append(node)
+        else:
+            print("DEAD")
 
-            print(
-                "Local SOCKS:",
-                f"{LOCAL_HOST}:{LOCAL_PORT}"
-            )
+    OUTPUT_FILE.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
 
-            print(
-                "Testing proxy connection..."
-            )
+    OUTPUT_FILE.write_text(
+        "\n".join(alive)
+        + (
+            "\n"
+            if alive
+            else ""
+        ),
+        encoding="utf-8"
+    )
 
-            if test_proxy():
-                print()
-                print("=" * 60)
-                print("SUCCESS")
-                print("=" * 60)
-                print(
-                    "SS proxy is working"
-                )
-            else:
-                print()
-                print("=" * 60)
-                print("FAILED")
-                print("=" * 60)
-                print(
-                    "SS proxy connection failed"
-                )
+    print()
+    print("=" * 60)
+    print("SS FINAL RESULT")
+    print("=" * 60)
 
-        finally:
-            process.terminate()
+    print(
+        "Tested:",
+        len(nodes)
+    )
 
-            try:
-                process.wait(
-                    timeout=5
-                )
-            except subprocess.TimeoutExpired:
-                process.kill()
+    print(
+        "Proxy Alive:",
+        len(alive)
+    )
+
+    print(
+        "Dead:",
+        len(nodes) - len(alive)
+    )
+
+    if nodes:
+        rate = (
+            len(alive)
+            / len(nodes)
+            * 100
+        )
+    else:
+        rate = 0
+
+    print(
+        "Success rate:",
+        f"{rate:.1f}%"
+    )
+
+    print(
+        "Output:",
+        OUTPUT_FILE
+    )
+
+    print("=" * 60)
 
 
 if __name__ == "__main__":
