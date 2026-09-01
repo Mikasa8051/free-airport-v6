@@ -2,14 +2,12 @@ name: Update Free Nodes
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 */6 * * *"
 
 permissions:
   contents: write
 
 jobs:
-  update:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,6 +24,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
 
+      - name: Install sing-box
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sing-box
+
+          echo "================================"
+          echo "SING-BOX VERSION"
+          echo "================================"
+
+          sing-box version
+
       - name: Fetch sources
         run: |
           python fetch_sources.py
@@ -34,64 +43,27 @@ jobs:
         run: |
           python prepare_nodes.py
 
-      - name: Test node connectivity
+      - name: Test nodes
         run: |
           python test_nodes.py
-          
+
+      - name: Test SS with sing-box
+        run: |
+          python test_ss_singbox.py
+
       - name: Show result
         run: |
           echo "================================"
-          echo "NODE RESULT"
+          echo "SS TEST RESULT"
           echo "================================"
 
-          echo ""
-          echo "RAW NODES:"
-          if [ -f output/nodes_raw.txt ]; then
-            wc -l output/nodes_raw.txt
-          else
-            echo "ERROR: nodes_raw.txt not found"
-            exit 1
-          fi
-
-      - name: Show alive nodes
-        run: |
-          echo "================================"
-          echo "ALIVE NODE RESULT"
-          echo "================================"
-
-          if [ -f output/nodes_alive.txt ]; then
-            wc -l output/nodes_alive.txt
+          if [ -f output/ss_alive.txt ]; then
+            echo "SS result file exists"
+            echo "SS nodes:"
+            wc -l output/ss_alive.txt
             echo ""
-            echo "First 10 alive nodes:"
-            head -10 output/nodes_alive.txt
+            echo "First 10:"
+            head -10 output/ss_alive.txt
           else
-            echo "ERROR: output/nodes_alive.txt not found"
-            exit 1
-          fi
-          
-          echo ""
-          echo "CLEAN NODES:"
-          if [ -f output/nodes_clean.txt ]; then
-            wc -l output/nodes_clean.txt
-          else
-            echo "ERROR: nodes_clean.txt not found"
-            exit 1
-          fi
-
-          echo ""
-          echo "First 10 clean nodes:"
-          head -10 output/nodes_clean.txt
-
-      - name: Commit result
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add output/nodes_raw.txt output/nodes_clean.txt output/nodes_test.txt output/nodes_alive.txt
-
-          if git diff --cached --quiet; then
-            echo "No changes"
-          else
-            git commit -m "Update node lists"
-            git push
+            echo "SS result file was not generated"
           fi
