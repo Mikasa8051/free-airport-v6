@@ -1,9 +1,13 @@
+```python
+import base64
 import json
+import socket
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 from urllib.parse import unquote, urlparse
+
 
 import requests
 
@@ -23,31 +27,142 @@ TIMEOUT = 8
 MAX_TEST_NODES = 200
 
 
+def decode_base64_text(value):
+    value = value.strip()
+
+    if not value:
+        return ""
+
+    try:
+        padding = len(value) % 4
+
+        if padding:
+            value += "=" * (4 - padding)
+
+        decoded = base64.urlsafe_b64decode(value)
+
+        return decoded.decode(
+            "utf-8",
+            errors="ignore"
+        )
+
+    except Exception:
+        return ""
+
+
 def parse_ss(node):
+    node = node.strip()
+
+    if not node.lower().startswith("ss://"):
+        return None
+
     try:
         parsed = urlparse(node)
 
-        if parsed.scheme.lower() != "ss":
-            return None
+        userinfo = parsed.username
+        password = parsed.password
 
         host = parsed.hostname
         port = parsed.port
 
-        if not host or not port:
-            return None
-
-        if parsed.username and parsed.password:
-            method = unquote(parsed.username)
-            password = unquote(parsed.password)
-
+        # --------------------------------------------------
+        # Format 1:
+        # ss://method:password@host:port
+        # --------------------------------------------------
+        if (
+            userinfo
+            and password
+            and host
+            and port
+        ):
             return {
                 "server": host,
                 "server_port": port,
-                "method": method,
-                "password": password,
+                "method": unquote(userinfo),
+                "password": unquote(password),
             }
 
-        return None
+        # --------------------------------------------------
+        # Format 2:
+        # ss://BASE64(method:password@host:port)
+        # --------------------------------------------------
+        payload = parsed.netloc
+
+        if "@" not in payload:
+            decoded = decode_base64_text(payload)
+
+            if decoded:
+                payload = decoded
+
+        if "@" not in payload:
+            return None
+
+        credentials, server_part = payload.rsplit(
+            "@",
+            1
+        )
+
+        if ":" not in credentials:
+            return None
+
+        method, password = credentials.split(
+            ":",
+            1
+        )
+
+        method = unquote(method)
+        password = unquote(password)
+
+        # --------------------------------------------------
+        # IPv6:
+        # method:password@[IPv6]:port
+        # --------------------------------------------------
+        if server_part.startswith("["):
+
+            end_bracket = server_part.find("]")
+
+            if end_bracket == -1:
+                return None
+
+            host = server_part[
+                1:end_bracket
+            ]
+
+            remaining = server_part[
+                end_bracket + 1:
+            ]
+
+            if not remaining.startswith(":"):
+                return None
+
+            port = int(
+                remaining[1:]
+            )
+
+        else:
+
+            if ":" not in server_part:
+                return None
+
+            host, port_text = server_part.rsplit(
+                ":",
+                1
+            )
+
+            port = int(port_text)
+
+        if not host or not port:
+            return None
+
+        if port < 1 or port > 65535:
+            return None
+
+        return {
+            "server": host,
+            "server_port": port,
+            "method": method,
+            "password": password,
+        }
 
     except Exception:
         return None
@@ -97,16 +212,22 @@ def create_config(node, config_path):
     return True
 
 
-def wait_for_socks():
-    import socket
-
+def wait_for_socks(process):
     for _ in range(20):
+
+        if process.poll() is not None:
+            return False
+
         try:
             with socket.create_connection(
-                (LOCAL_HOST, LOCAL_PORT),
+                (
+                    LOCAL_HOST,
+                    LOCAL_PORT
+                ),
                 timeout=1
             ):
                 return True
+
         except Exception:
             time.sleep(0.25)
 
@@ -116,16 +237,17 @@ def wait_for_socks():
 def test_proxy():
     proxies = {
         "http": (
-            f"socks5h://"
+            "socks5h://"
             f"{LOCAL_HOST}:{LOCAL_PORT}"
         ),
         "https": (
-            f"socks5h://"
+            "socks5h://"
             f"{LOCAL_HOST}:{LOCAL_PORT}"
         ),
     }
 
     try:
+
         response = requests.get(
             TEST_URL,
             proxies=proxies,
@@ -142,6 +264,7 @@ def test_proxy():
 
 
 def test_one_node(node):
+
     with tempfile.TemporaryDirectory() as temp_dir:
 
         config_path = (
@@ -167,38 +290,54 @@ def test_one_node(node):
         )
 
         try:
-            if not wait_for_socks():
+
+            if not wait_for_socks(
+                process
+            ):
                 return False
 
             return test_proxy()
 
         finally:
+
             process.terminate()
 
             try:
                 process.wait(
                     timeout=3
                 )
+
             except subprocess.TimeoutExpired:
+
                 process.kill()
 
-        time.sleep(0.2)
+                try:
+                    process.wait(
+                        timeout=2
+                    )
+                except Exception:
+                    pass
+
+            time.sleep(0.2)
 
 
 def main():
+
     print("=" * 60)
     print("SHADOWSOCKS BATCH TEST")
     print("=" * 60)
 
     if not INPUT_FILE.exists():
+
         print(
             "ERROR:",
             INPUT_FILE,
             "not found"
         )
+
         raise SystemExit(1)
 
-    nodes = []
+    all_nodes = []
 
     for line in INPUT_FILE.read_text(
         encoding="utf-8"
@@ -209,23 +348,35 @@ def main():
         if not node:
             continue
 
-        if node.lower().startswith("ss://"):
-            nodes.append(node)
+        if node.lower().startswith(
+            "ss://"
+        ):
+            all_nodes.append(node)
 
     print(
         "SS nodes found:",
-        len(nodes)
+        len(all_nodes)
     )
 
-    if not nodes:
-        print("No SS nodes found")
+    if not all_nodes:
+
+        OUTPUT_FILE.parent.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
         OUTPUT_FILE.write_text(
             "",
             encoding="utf-8"
         )
+
+        print("No SS nodes found")
+
         return
 
-    nodes = nodes[:MAX_TEST_NODES]
+    nodes = all_nodes[
+        :MAX_TEST_NODES
+    ]
 
     print(
         "SS nodes selected:",
@@ -234,31 +385,40 @@ def main():
 
     alive = []
 
+    invalid = 0
+
     for index, node in enumerate(
         nodes,
         1
     ):
-        print(
-            f"[{index}/{len(nodes)}]",
-            end=" ",
-            flush=True
-        )
 
         data = parse_ss(node)
 
         if not data:
-            print("INVALID")
+
+            print(
+                f"[{index}/{len(nodes)}] INVALID"
+            )
+
+            invalid += 1
+
             continue
 
         print(
+            f"[{index}/{len(nodes)}] "
             f"{data['server']}:{data['server_port']}",
-            end=" "
+            end=" ",
+            flush=True
         )
 
         if test_one_node(node):
+
             print("PROXY ALIVE")
+
             alive.append(node)
+
         else:
+
             print("DEAD")
 
     OUTPUT_FILE.parent.mkdir(
@@ -276,14 +436,37 @@ def main():
         encoding="utf-8"
     )
 
+    tested = len(nodes)
+
+    dead = tested - len(alive) - invalid
+
+    if tested:
+        rate = (
+            len(alive)
+            / tested
+            * 100
+        )
+    else:
+        rate = 0
+
     print()
     print("=" * 60)
     print("SS FINAL RESULT")
     print("=" * 60)
 
     print(
-        "Tested:",
+        "SS nodes found:",
+        len(all_nodes)
+    )
+
+    print(
+        "Selected:",
         len(nodes)
+    )
+
+    print(
+        "Tested:",
+        tested
     )
 
     print(
@@ -293,17 +476,13 @@ def main():
 
     print(
         "Dead:",
-        len(nodes) - len(alive)
+        dead
     )
 
-    if nodes:
-        rate = (
-            len(alive)
-            / len(nodes)
-            * 100
-        )
-    else:
-        rate = 0
+    print(
+        "Invalid:",
+        invalid
+    )
 
     print(
         "Success rate:",
@@ -320,3 +499,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
